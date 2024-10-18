@@ -144,6 +144,10 @@ tile_ast_t* tile_parser_parse_statement(tile_parser_t* parser) {
         return tile_parser_parse_while_statement(parser);
         break;
 
+    case TOKEN_FOR:
+        return tile_parser_parse_for_statement(parser);
+        break;
+
     case TOKEN_IF:
         return tile_parser_parse_if_statement(parser);
         break;
@@ -195,6 +199,29 @@ tile_ast_t* tile_parser_parse_statements(tile_parser_t* parser) {
     });
 
     return program;
+}
+
+tile_ast_t* tile_parser_parse_for_statement(tile_parser_t* parser) {
+    // for (initialization; condition; update) 
+    // { } // block part 
+
+    tile_parser_eat(parser, TOKEN_FOR);
+    tile_parser_eat(parser, TOKEN_LPAREN);
+    tile_ast_t* initialization = tile_parser_parse_variable_assign(parser);
+    tile_parser_eat(parser, TOKEN_SEMI);
+    tile_ast_t* condition = tile_parser_parse_expression(parser);
+    tile_parser_eat(parser, TOKEN_SEMI);
+    tile_ast_t* update = tile_parser_parse_expression(parser);
+    tile_parser_eat(parser, TOKEN_RPAREN);
+    tile_ast_t* body = tile_parser_parse_block(parser);
+    tile_ast_t* for_statement = tile_ast_create((tile_ast_t) {
+        .for_statement.initialization = initialization,
+        .for_statement.condition = condition,
+        .for_statement.update = update,
+        .for_statement.body = body,
+        .tag = AST_FOR_STATEMENT,
+    });
+    return for_statement;
 }
 
 tile_ast_t* tile_parser_parse_while_statement(tile_parser_t* parser) {

@@ -28,6 +28,7 @@ typedef struct tile_ast {
 
         AST_EXPRESSION,
 
+        AST_FOR_STATEMENT,
         AST_WHILE_STATEMENT,
         AST_IF_STATEMENT,
         AST_MATCH_STATEMENT,
@@ -119,6 +120,14 @@ typedef struct tile_ast {
             };
 
         } expression;
+
+        // AST_FOR_STATEMENT
+        struct ast_for_statement {
+            struct tile_ast* initialization;
+            struct tile_ast* condition;
+            struct tile_ast* update;
+            struct tile_ast* body;
+        } for_statement;
 
         // AST_WHILE_STATEMENT
         struct ast_while_statement {

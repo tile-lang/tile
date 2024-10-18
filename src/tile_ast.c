@@ -169,6 +169,22 @@ void tile_ast_show(tile_ast_t* node, int indent) {
             printf("Body:\n");
             tile_ast_show(node->while_statement.body, indent + 2);
             break;
+
+        case AST_FOR_STATEMENT:
+            printf("ForStmt:\n");
+            print_indent(indent + 1);
+            printf("Initialization:\n");
+            tile_ast_show(node->for_statement.initialization, indent + 2);
+            print_indent(indent + 1);
+            printf("Condition:\n");
+            tile_ast_show(node->for_statement.condition, indent + 2);
+            print_indent(indent + 1);
+            printf("Update:\n");
+            tile_ast_show(node->for_statement.update, indent + 2);
+            print_indent(indent + 1);
+            printf("Body:\n");
+            tile_ast_show(node->for_statement.body, indent + 2);
+            break;
     
         case AST_IF_STATEMENT:
             printf("IfStmt\n");
