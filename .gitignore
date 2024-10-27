@@ -1,0 +1,4 @@
+.antlr
+build*
+src/gen
+examples/test*
