@@ -19,7 +19,7 @@ build:
 #src/tile/ast/expr/*.java
 
 run:
-	java -cp "$(ANTLR);.;$(BUILD)" org.antlr.v4.gui.TestRig $(LANG) $(RULE) -gui ./examples/sum.tile
+	java -cp "$(ANTLR);.;$(BUILD)" org.antlr.v4.gui.TestRig $(PACKAGE).$(LANG) $(RULE) -gui ./examples/test.tile
 
 app:
 	java -cp "$(ANTLR);.;$(BUILD)" tile.app.Tile
