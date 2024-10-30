@@ -230,9 +230,8 @@ PUNC_ELLIPSIS
     : '...'
     ;
 
-
 INT_LITERAL
-    : '0' | (('-' | '+')? [1-9])+
+    : '0' | [1-9]+
     ;
 
 BOOL_LITERAL
@@ -241,7 +240,19 @@ BOOL_LITERAL
     ;
 
 IDENTIFIER
-    : [a-zA-Z_][a-zA-Z_0-9]*
+    : IdentifierNondigit (IdentifierNondigit | Digit)*
+    ;
+
+fragment IdentifierNondigit
+    : Nondigit
+    ;
+
+fragment Nondigit
+    : [a-zA-Z_]
+    ;
+
+fragment Digit
+    : [0-9]
     ;
 
 WHITE_SPACE
