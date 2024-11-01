@@ -23,10 +23,11 @@ statement
     | blockStmt
     | selectionStmt
     | expressionStmt
+    | func_def_stmt
+    | func_call_stmt
     ; 
     // TODO: create these statements
     // : expression_stmt
-    // | func_def_stmt
     // | return_stmt
     // | loop_stmt
     // | selection_stmt
@@ -167,6 +168,22 @@ ifStmt
 
 blockStmt
     : '{' statements? '}'
+    ;
+
+func_def_stmt
+    : KW_FUNC IDENTIFIER '(' parameters? ')' blockStmt
+    ;
+
+func_call_stmt
+    : IDENTIFIER '(' arguments? ')'
+    ;
+
+parameters
+    : IDENTIFIER (',' IDENTIFIER)*
+    ;
+
+arguments
+    : expression (',' expression)*
     ;
 
 typeName
