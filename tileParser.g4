@@ -23,8 +23,7 @@ statement
     | blockStmt
     | selectionStmt
     | expressionStmt
-    | func_def_stmt
-    | func_call_stmt
+    | funcDefStmt
     ; 
     // TODO: create these statements
     // : expression_stmt
@@ -54,6 +53,7 @@ expression
     | logicalOrExpression
     | conditionalExpression
     | assignmentExpression
+    | funcCallExpr
     ;
 
 primaryExpr
@@ -170,11 +170,11 @@ blockStmt
     : '{' statements? '}'
     ;
 
-func_def_stmt
+funcDefStmt
     : KW_FUNC IDENTIFIER '(' parameters? ')' blockStmt
     ;
 
-func_call_stmt
+funcCallExpr
     : IDENTIFIER '(' arguments? ')'
     ;
 
