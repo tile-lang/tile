@@ -19,18 +19,15 @@ statements
     ;
 
 statement
-    : loopStmt
-    | blockStmt
+    : expressionStmt
+    | loopStmt
     | selectionStmt
-    | expressionStmt
+    | funcDefStmt
+    | blockStmt
     ; 
     // TODO: create these statements
-    // : expression_stmt
     // | func_def_stmt
     // | return_stmt
-    // | loop_stmt
-    // | selection_stmt
-    // | block_stmt
     // ;
 
 expressionStmt
@@ -40,6 +37,7 @@ expressionStmt
 expression
     : primaryExpr
     | unaryExpression
+    | funcCallExpression
     | castExpression
     | multiplicativeExpression
     | additiveExpression
@@ -73,6 +71,10 @@ unaryOperator
     // | '-'
     : '~'
     | '!'
+    ;
+
+funcCallExpression
+    : IDENTIFIER '(' (expression)? (',' expression)* ')'
     ;
 
 castExpression
@@ -165,8 +167,16 @@ ifStmt
     : KW_IF '(' expression ')' blockStmt (KW_ELSE (blockStmt | ifStmt))?
     ;
 
+funcDefStmt
+    : KW_FUNC IDENTIFIER '(' (argument)? (',' argument)* ')' ':' typeName blockStmt
+    ;
+
 blockStmt
     : '{' statements? '}'
+    ;
+
+argument
+    : typeName IDENTIFIER
     ;
 
 typeName
