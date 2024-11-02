@@ -11,6 +11,9 @@ lexer grammar tileLexer;
 KW_FUNC
     : 'func'
     ;
+KW_REF
+    : 'ref'
+    ;
 KW_INT
     : 'int'
     ;
