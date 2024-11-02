@@ -20,15 +20,13 @@ statements
 
 statement
     : expressionStmt
+    | variableStmt
     | loopStmt
     | selectionStmt
     | funcDefStmt
+    | returnStmt
     | blockStmt
-    ; 
-    // TODO: create these statements
-    // | func_def_stmt
-    // | return_stmt
-    // ;
+    ;
 
 expressionStmt
     : expression? ';'
@@ -81,6 +79,8 @@ castExpression
     : '(' typeName ')' primaryExpr
     | unaryExpression
     | primaryExpr
+    | '(' typeName ')' funcCallExpression
+    | funcCallExpression
     ;
 
 multiplicativeExpression
@@ -147,28 +147,60 @@ assignmentOperator
     | '|='
     ;
 
+variableStmt
+    : (variableDecleration | variableDefinition | variableAssignment) ';'
+    ;
+
+variableDecleration
+    : typeName IDENTIFIER
+    ;
+
+variableDefinition
+    : typeName IDENTIFIER '=' expression
+    ;
+
+variableAssignment
+    : IDENTIFIER assignmentOperator expression
+    ;
+
 loopStmt
     : whileStmt
+    | forStmt
     ;
 
 whileStmt
     : KW_WHILE '(' expression ')' blockStmt
     ;
 
-// for_stmt
-//     : KW_FOR '(' ')'
-//     ;
+forInitial
+    : expressionStmt
+    | variableStmt
+    ;
+
+forUpdate
+    : unaryExpression
+    | funcCallExpression
+    | variableAssignment
+    ;
+
+forStmt
+    : KW_FOR '(' forInitial expressionStmt forUpdate? ')' blockStmt
+    ;
 
 selectionStmt
     : ifStmt 
     ;
 
 ifStmt
-    : KW_IF '(' expression ')' blockStmt (KW_ELSE (blockStmt | ifStmt))?
+    : KW_IF '(' expression ')' (blockStmt | statement) (KW_ELSE ((blockStmt | statement) | ifStmt))?
     ;
 
 funcDefStmt
     : KW_FUNC IDENTIFIER '(' (argument)? (',' argument)* ')' ':' typeName blockStmt
+    ;
+
+returnStmt
+    : KW_RETURN expressionStmt
     ;
 
 blockStmt
@@ -176,7 +208,7 @@ blockStmt
     ;
 
 argument
-    : typeName IDENTIFIER
+    : KW_REF? typeName IDENTIFIER
     ;
 
 typeName
