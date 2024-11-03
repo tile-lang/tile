@@ -8,9 +8,9 @@ public class FunctionDefinition implements Statement {
     private String funcName;
     private List<String> arg_types;
     private List<String> args;
-    private Block block;
+    private Statement block;
 
-    public FunctionDefinition(String funcName, List<String> arg_types, List<String> args, Block block) {
+    public FunctionDefinition(String funcName, List<String> arg_types, List<String> args, Statement block) {
         this.funcName = funcName;
         this.arg_types = arg_types;
         this.args = args;
