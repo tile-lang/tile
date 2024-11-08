@@ -19,7 +19,8 @@ public class Program extends Generator {
 
     @Override
     public void generate() {
-        // TODO: generate tasm code entry point.
+        generatedCode = statements.get(0).generateTasm(generatedCode);
+        System.out.println(generatedCode);
     }
     
 }

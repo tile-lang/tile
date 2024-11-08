@@ -33,7 +33,7 @@ expressionStmt
     ;
 
 expression
-    : primaryExpr
+    : primaryExpression
     | unaryExpression
     | funcCallExpression
     | castExpression
@@ -51,7 +51,7 @@ expression
     | assignmentExpression
     ;
 
-primaryExpr
+primaryExpression
     : INT_LITERAL
     | BOOL_LITERAL
     | IDENTIFIER
@@ -61,7 +61,7 @@ primaryExpr
 unaryExpression
     : ( '++' | '--' ) IDENTIFIER
     | IDENTIFIER ( '++' | '--' )
-    | unaryOperator primaryExpr
+    | unaryOperator primaryExpression
     ;
 
 unaryOperator
@@ -76,9 +76,9 @@ funcCallExpression
     ;
 
 castExpression
-    : '(' typeName ')' primaryExpr
+    : '(' typeName ')' primaryExpression
     | unaryExpression
-    | primaryExpr
+    | primaryExpression
     | '(' typeName ')' funcCallExpression
     | funcCallExpression
     ;
@@ -130,7 +130,7 @@ conditionalExpression
 assignmentExpression
     : conditionalExpression
     | unaryExpression assignmentOperator assignmentExpression
-    | primaryExpr
+    | primaryExpression
     ;
 
 assignmentOperator
@@ -192,7 +192,7 @@ selectionStmt
     ;
 
 ifStmt
-    : KW_IF '(' expression ')' (blockStmt | statement) (KW_ELSE ((blockStmt | statement) | ifStmt))?
+    : KW_IF '(' expression ')' (blockStmt) (KW_ELSE (blockStmt | ifStmt))?
     ;
 
 funcDefStmt
