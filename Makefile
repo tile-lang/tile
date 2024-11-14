@@ -17,19 +17,17 @@ else
 endif
 
 
-antlr: dir gen build
-
-dir:
-ifeq ($(OS), Windows_NT)
-	if not exist $(BUILD) mkdir $(BUILD)
-else
-	mkdir -p $(BUILD)
-endif
+antlr: gen build
 
 gen:
 	java -jar $(ANTLR) -Dlanguage=Java -visitor -package $(PACKAGE) ./$(LANG_PARSER).g4 ./$(LANG_LEXER).g4 -o $(PACKAGE_PATH)
 
 build:
+ifeq ($(OS), Windows_NT)
+	if not exist $(BUILD) mkdir $(BUILD)
+else
+	mkdir -p $(BUILD)
+endif
 	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java -d $(BUILD)
 
 run:
