@@ -1,5 +1,8 @@
 package tile;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import tile.ast.base.Statement;
@@ -17,10 +20,44 @@ public class Program extends Generator {
         statements.add(stmt);
     }
 
+    private String generateProgram(String generatedCode) {
+        generatedCode += "; program begins\n";
+        generatedCode += "jmp __start\n";
+        generatedCode += "\n";
+
+        generatedCode += "__start:\n";
+
+        for (int i = 0; i < statements.size(); i++) {
+            generatedCode = statements.get(i).generateTasm(generatedCode);
+        }
+
+        generatedCode += "hlt\n";
+
+        return generatedCode;
+    }
+
+    private void writeOutput() {
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter("examples/test.tasm", "ASCII");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        writer.print(generatedCode);
+        writer.close();
+    }
+
     @Override
     public void generate() {
-        generatedCode = statements.get(0).generateTasm(generatedCode);
+        
+        generatedCode = generateProgram(generatedCode);
+
+        // debug:
         System.out.println(generatedCode);
+        // write to a file
+        writeOutput();
     }
     
 }
