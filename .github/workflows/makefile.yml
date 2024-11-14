@@ -29,7 +29,8 @@ jobs:
     - name: Run Compile
       run: make
 
-    - name: Run App
-      run: make app
+    # it will be used in the feature
+    # - name: Run App
+    #   run: make app
 
       #########################
