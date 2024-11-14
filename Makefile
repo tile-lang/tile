@@ -12,8 +12,10 @@ ANTLR = ./lib/antlr-4.7-complete.jar
 # Detect OS to set classpath separator
 ifeq ($(OS), Windows_NT)
     CLASSPATH_SEP = ;
+	if not exist $(BUILD) mkdir $(BUILD)
 else
     CLASSPATH_SEP = :
+	mkdir -p $(BUILD)
 endif
 
 
