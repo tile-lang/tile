@@ -12,6 +12,7 @@ public class PrimaryExpression implements Expression {
 
     @Override
     public String generateTasm(String generatedCode) {
+        generatedCode += "    ";
         generatedCode += "push " + value + "\n";
         return generatedCode;
     }
