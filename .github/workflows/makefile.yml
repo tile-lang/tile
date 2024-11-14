@@ -19,6 +19,9 @@ jobs:
 
     - name: Install dependencies
       run: make
+
+    - name: Create build directory
+      run: mkdir -p build-tile
       
     - name: Set up Java
       uses: actions/setup-java@v3
