@@ -8,6 +8,9 @@ public class BlockStmt implements Statement {
 
     private List<Statement> statements;
 
+    public static int scopeId = 0;
+    public static int ifStmtId = 0;
+
     public BlockStmt() {
         this.statements = new ArrayList<>();
     }
@@ -18,9 +21,12 @@ public class BlockStmt implements Statement {
 
     @Override
     public String generateTasm(String generatedCode) {
+        scopeId++;
         for (int i = 0; i < statements.size(); i++) {
             generatedCode = statements.get(i).generateTasm(generatedCode);
         }
+        scopeId--;
+        ifStmtId++;
         return generatedCode;
     }
     
