@@ -12,7 +12,7 @@ ANTLR = ./lib/antlr-4.7-complete.jar
 # Detect OS to set classpath separator
 ifeq ($(OS), Windows_NT)
     CLASSPATH_SEP = ;
-	MKDIR_P = if not exist $(BUILD) mkdir $(BUILD)
+	MKDIR_P = mkdir $(BUILD)
 else
     CLASSPATH_SEP = :
 	MKDIR_P = mkdir -p $(BUILD)
@@ -24,7 +24,6 @@ antlr: gen build
 gen:
 	java -jar $(ANTLR) -Dlanguage=Java -visitor -package $(PACKAGE) ./$(LANG_PARSER).g4 ./$(LANG_LEXER).g4 -o $(PACKAGE_PATH)
 
-# $(MKDIR_P)
 build:
 	$(MKDIR_P)
 	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java src/tile/ast/types/*.java -d $(BUILD)
