@@ -39,25 +39,31 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 String intLiteral = ctx.INT_LITERAL().getText();
                 expr = new PrimaryExpression(intLiteral, "int");
             }
-            if (ctx.FLOAT_LITERAL() != null) {
+            else if (ctx.FLOAT_LITERAL() != null) {
                 String floatLiteral = ctx.FLOAT_LITERAL().getText();
                 expr = new PrimaryExpression(floatLiteral, "float");
             }
-            if (ctx.CHAR_LITERAL() != null) {
+            else if (ctx.CHAR_LITERAL() != null) {
                 String chrLiteral = ctx.CHAR_LITERAL().getText();
                 expr = new PrimaryExpression(chrLiteral, "char");
             }
-            if (ctx.BOOL_LITERAL() != null) {
+            else if (ctx.BOOL_LITERAL() != null) {
                 String boolLiteral = ctx.BOOL_LITERAL().getText();
                 if (boolLiteral == "true")
                     expr = new PrimaryExpression("1", "bool");
                 else if (boolLiteral == "false")
                     expr = new PrimaryExpression("0", "bool");
             }
-            if (ctx.IDENTIFIER() != null) {
+            else if (ctx.IDENTIFIER() != null) {
                 String identifier = ctx.IDENTIFIER().getText();
                 // FIXME: find the correct type from a lookup table!
                 expr = new PrimaryExpression(identifier, "Object");
+            }
+        } else {
+            if (ctx.expression() != null) {
+                // Parentheses case: Visit the inner expression
+                System.out.println("HERE!!!!!!");
+                return visit(ctx.expression());
             }
         }
         return expr;
