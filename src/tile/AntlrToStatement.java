@@ -1,5 +1,7 @@
 package tile;
 
+import java.util.ArrayList;
+
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.ForStmtContext;
@@ -14,6 +16,8 @@ import gen.antlr.tile.tileParserBaseVisitor;
 import tile.ast.base.*;
 import tile.ast.stmt.BlockStmt;
 import tile.ast.stmt.ExpressionStmt;
+import tile.ast.stmt.FunctionDefinition;
+import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.stmt.IfStmt;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
@@ -21,6 +25,10 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     @Override
     public Statement visitBlockStmt(BlockStmtContext ctx) {
         Statement blockStmt = new BlockStmt();
+        if (ctx.statements() == null) {
+            return blockStmt;
+        }
+        
         for (int i = 0; i < ctx.statements().statement().size(); i++) {
             Statement stmt = visit(ctx.statements().statement(i));
             ((BlockStmt)blockStmt).addStatement(stmt);
@@ -44,8 +52,26 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitFuncDefStmt(FuncDefStmtContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitFuncDefStmt(ctx);
+        String funcId = ctx.IDENTIFIER().getText();
+        ArrayList<FuncArg> args = new ArrayList<>();
+
+        FunctionDefinition fds = null;
+
+        for (int i = 1; i < ctx.argument().size(); i++) {
+            FuncArg arg = new FuncArg(
+                ctx.argument(i).typeName().getText(),
+                ctx.argument(i).IDENTIFIER().getText(),
+                false
+            );
+            args.add(arg);
+        }
+        
+        BlockStmt block = new BlockStmt();
+        block = (BlockStmt)visit(ctx.getChild(ctx.getChildCount() - 1));
+
+
+        fds = new FunctionDefinition(funcId, args, block);
+        return fds;
     }
 
     @Override

@@ -20,22 +20,77 @@ import gen.antlr.tile.tileParser.ShiftExpressionContext;
 import gen.antlr.tile.tileParser.UnaryExpressionContext;
 import gen.antlr.tile.tileParserBaseVisitor;
 import tile.ast.base.Expression;
+import tile.ast.expr.AdditativeExpression;
+import tile.ast.expr.CastExpression;
+import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
+import tile.ast.types.TypeReslover;
+import tile.ast.types.TypeReslover.TypeInfoBinop;
+import tile.ast.types.TypeReslover.TypeInfoCast;
 
 public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitPrimaryExpression(PrimaryExpressionContext ctx) {
-        //TODO: upgrade this.
-        String intlit = ctx.INT_LITERAL().getText();
-        Expression expr = new PrimaryExpression(intlit);
+        int count = ctx.getChildCount();
+        Expression expr = null;
+        if (count == 1) { 
+            if (ctx.INT_LITERAL() != null) {
+                String intLiteral = ctx.INT_LITERAL().getText();
+                expr = new PrimaryExpression(intLiteral, "int");
+            }
+            else if (ctx.FLOAT_LITERAL() != null) {
+                String floatLiteral = ctx.FLOAT_LITERAL().getText();
+                expr = new PrimaryExpression(floatLiteral, "float");
+            }
+            else if (ctx.CHAR_LITERAL() != null) {
+                String chrLiteral = ctx.CHAR_LITERAL().getText();
+                expr = new PrimaryExpression(chrLiteral, "char");
+            }
+            else if (ctx.BOOL_LITERAL() != null) {
+                String boolLiteral = ctx.BOOL_LITERAL().getText();
+                if (boolLiteral == "true")
+                    expr = new PrimaryExpression("1", "bool");
+                else if (boolLiteral == "false")
+                    expr = new PrimaryExpression("0", "bool");
+            }
+            else if (ctx.IDENTIFIER() != null) {
+                String identifier = ctx.IDENTIFIER().getText();
+                // FIXME: find the correct type from a lookup table!
+                expr = new PrimaryExpression(identifier, "Object");
+            }
+        } else {
+            if (ctx.expression() != null) {
+                // Parentheses case: Visit the inner expression
+                System.out.println("HERE!!!!!!");
+                return visit(ctx.expression());
+            }
+        }
         return expr;
     }
 
     @Override
     public Expression visitAdditiveExpression(AdditiveExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitAdditiveExpression(ctx);
+        // If there's no operator, directly visit the single child (multiplicativeExpression).
+        if (ctx.multiplicativeExpression().size() == 1) {
+            return visit(ctx.multiplicativeExpression(0));
+        }
+
+        // Otherwise, process the operator and operands.
+        Expression left = visit(ctx.multiplicativeExpression(0)); // The first operand.
+        for (int i = 1; i < ctx.multiplicativeExpression().size(); i++) {
+            // Get the operator (+ or -).
+            String operator = ctx.getChild((i * 2) - 1).getText(); // Operators are at odd indices.
+
+            // Visit the right operand.
+            Expression right = visit(ctx.multiplicativeExpression(i));
+
+            String lhs_type = left.getType();
+            String rhs_type = right.getType();;
+            TypeInfoBinop type = TypeReslover.resolveBinopNumericType(lhs_type, rhs_type);
+            left = new AdditativeExpression(left, operator, right, type);
+        }
+        return left;
     }
 
     @Override
@@ -52,8 +107,26 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitCastExpression(CastExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitCastExpression(ctx);
+        if (ctx.typeName() == null) {
+            if (ctx.primaryExpression() != null) {
+                return visit(ctx.primaryExpression());
+            } else if (ctx.funcCallExpression() != null) {
+                return visit(ctx.funcCallExpression());
+            }
+        }
+        String cast_type = ctx.typeName().getText();
+        String expr_type = null;
+        Expression expr = null;
+        if (ctx.primaryExpression() != null) {
+            expr = visit(ctx.primaryExpression());
+        } else if (ctx.funcCallExpression() != null) {
+            expr = visit(ctx.funcCallExpression());
+        }
+        expr_type = expr.getType();
+
+        TypeInfoCast type = TypeReslover.resolveCastType(expr_type, cast_type);
+        Expression castExpr = new CastExpression(expr, type);
+        return castExpr;
     }
 
     @Override
@@ -112,8 +185,26 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitMultiplicativeExpression(MultiplicativeExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitMultiplicativeExpression(ctx);
+        // If there's no operator, directly visit the single child (castExpression).
+        if (ctx.castExpression().size() == 1) {
+            return visit(ctx.castExpression(0));
+        }
+
+        // Otherwise, process the operator and operands.
+        Expression left = visit(ctx.castExpression(0)); // The first operand.
+        for (int i = 1; i < ctx.castExpression().size(); i++) {
+            // Get the operator (* or /).
+            String operator = ctx.getChild((i * 2) - 1).getText(); // Operators are at odd indices.
+
+            // Visit the right operand.
+            Expression right = visit(ctx.castExpression(i));
+
+            String lhs_type = left.getType();
+            String rhs_type = right.getType();
+            TypeInfoBinop type = TypeReslover.resolveBinopNumericType(lhs_type, rhs_type);
+            left = new MultiplicativeExpression(left, operator, right, type);
+        }
+        return left;
     }
 
     @Override

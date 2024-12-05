@@ -25,12 +25,14 @@ public class Program extends Generator {
         generatedCode += "jmp __start\n";
         generatedCode += "\n";
 
-        generatedCode += "__start:\n";
-
         for (int i = 0; i < statements.size(); i++) {
             generatedCode = statements.get(i).generateTasm(generatedCode);
         }
 
+        generatedCode += "__start:\n";
+        generatedCode += "\n";
+        generatedCode += "call main\n";
+        generatedCode += "\n";
         generatedCode += "hlt\n";
 
         return generatedCode;

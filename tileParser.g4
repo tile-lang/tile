@@ -53,6 +53,8 @@ expression
 
 primaryExpression
     : INT_LITERAL
+    | FLOAT_LITERAL
+    | CHAR_LITERAL
     | BOOL_LITERAL
     | IDENTIFIER
     | '(' expression ')'
@@ -77,7 +79,7 @@ funcCallExpression
 
 castExpression
     : '(' typeName ')' primaryExpression
-    | unaryExpression
+    // | unaryExpression
     | primaryExpression
     | '(' typeName ')' funcCallExpression
     | funcCallExpression
@@ -216,4 +218,5 @@ typeName
     | KW_FLOAT
     | KW_BOOL
     | KW_FUNC
+    | IDENTIFIER // For custom types like structs
     ;

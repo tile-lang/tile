@@ -1,5 +1,5 @@
 # variables
-BUILD = ./build-tile
+BUILD = build-tile
 LANG = tile
 LANG_PARSER = $(LANG)Parser
 LANG_LEXER = $(LANG)Lexer
@@ -26,7 +26,7 @@ gen:
 
 build:
 	$(MKDIR_P)
-	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java -d $(BUILD)
+	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java src/tile/ast/types/*.java -d $(BUILD)
 
 run:
 	java -cp "$(ANTLR)$(CLASSPATH_SEP).$(CLASSPATH_SEP)$(BUILD)" org.antlr.v4.gui.TestRig $(PACKAGE).$(LANG) $(RULE) -gui ./examples/test.tile
