@@ -2,3 +2,5 @@
 build*
 src/gen
 examples/test*
+.idea
+tile.iml
