@@ -7,8 +7,12 @@ public class PrimaryExpression implements Expression {
     private String value;
     private String type;
 
-    public PrimaryExpression(String value, String type) {
-        this.value = value;
+    public PrimaryExpression(String unaryOp, String value, String type) {
+        if (unaryOp != null) {
+            this.value = unaryOp + value;
+        } else {
+            this.value = value;
+        }
         this.type = type;
     }
 

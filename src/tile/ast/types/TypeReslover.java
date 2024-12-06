@@ -17,6 +17,10 @@ public class TypeReslover {
         public String cast_type; // wanted type for converting
     }
 
+    public static class TypeFuncCall {
+        public String result_type; // result type
+    }
+
     public static String[] NumericTypes = {"int", "float"};
     
     public static boolean isNumericType(String type) {

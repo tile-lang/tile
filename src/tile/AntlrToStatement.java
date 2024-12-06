@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.ForStmtContext;
+import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.IfStmtContext;
 import gen.antlr.tile.tileParser.LoopStmtContext;
@@ -19,6 +20,7 @@ import tile.ast.stmt.ExpressionStmt;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.stmt.IfStmt;
+import tile.ast.types.TypeReslover.TypeFuncCall;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
@@ -38,9 +40,15 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitExpressionStmt(ExpressionStmtContext ctx) {
+        // We need to eliminate code generation for ExpressionStmtContext whose parents are NOT ReturnStmtContext.
+        // this will eliminate code lines like: "5;" or "3 + 8 * 2;" to generate 'push' and 'binop(mult, add etc.)' instructions.
+        boolean generate = false;
+        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext)) {
+            generate = true;
+        }
         AntlrToExpression exprVisitor = new AntlrToExpression();
         Expression expr = exprVisitor.visit(ctx.expression());
-        Statement expressionStatement = new ExpressionStmt(expr);
+        Statement expressionStatement = new ExpressionStmt(expr, generate);
         return expressionStatement;
     }
 
@@ -54,10 +62,11 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     public Statement visitFuncDefStmt(FuncDefStmtContext ctx) {
         String funcId = ctx.IDENTIFIER().getText();
         ArrayList<FuncArg> args = new ArrayList<>();
-
+        TypeFuncCall return_type = new TypeFuncCall();
+        return_type.result_type = ctx.typeName().getText();
         FunctionDefinition fds = null;
 
-        for (int i = 1; i < ctx.argument().size(); i++) {
+        for (int i = 0; i < ctx.argument().size(); i++) {
             FuncArg arg = new FuncArg(
                 ctx.argument(i).typeName().getText(),
                 ctx.argument(i).IDENTIFIER().getText(),
@@ -70,7 +79,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         block = (BlockStmt)visit(ctx.getChild(ctx.getChildCount() - 1));
 
 
-        fds = new FunctionDefinition(funcId, args, block);
+        fds = new FunctionDefinition(funcId, args, return_type, block);
         return fds;
     }
 
