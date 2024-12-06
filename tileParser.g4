@@ -67,9 +67,9 @@ unaryExpression
     ;
 
 unaryOperator
-    // : '+'
-    // | '-'
-    : '~'
+    : '+'
+    | '-'
+    | '~'
     | '!'
     ;
 
@@ -79,8 +79,9 @@ funcCallExpression
 
 castExpression
     : '(' typeName ')' primaryExpression
-    // | unaryExpression
     | primaryExpression
+    | '(' typeName ')' unaryExpression
+    | unaryExpression
     | '(' typeName ')' funcCallExpression
     | funcCallExpression
     ;
