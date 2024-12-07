@@ -1,7 +1,7 @@
 package tile.ast.expr;
 
 import tile.ast.base.Expression;
-import tile.ast.types.TypeReslover.TypeInfoBinop;
+import tile.ast.types.TypeResolver.TypeInfoBinop;
 
 public class MultiplicativeExpression implements Expression {
 

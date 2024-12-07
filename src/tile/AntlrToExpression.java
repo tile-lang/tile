@@ -32,10 +32,10 @@ import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.UnaryExpression;
 import tile.ast.stmt.FunctionDefinition;
-import tile.ast.types.TypeReslover;
-import tile.ast.types.TypeReslover.TypeFuncCall;
-import tile.ast.types.TypeReslover.TypeInfoBinop;
-import tile.ast.types.TypeReslover.TypeInfoCast;
+import tile.ast.types.TypeResolver;
+import tile.ast.types.TypeResolver.TypeFuncCall;
+import tile.ast.types.TypeResolver.TypeInfoBinop;
+import tile.ast.types.TypeResolver.TypeInfoCast;
 import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
@@ -108,7 +108,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
             String lhs_type = left.getType();
             String rhs_type = right.getType();;
-            TypeInfoBinop type = TypeReslover.resolveBinopNumericType(lhs_type, rhs_type);
+            TypeInfoBinop type = TypeResolver.resolveBinopNumericType(lhs_type, rhs_type);
             left = new AdditativeExpression(left, operator, right, type);
         }
         return left;
@@ -149,7 +149,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         }
         expr_type = expr.getType();
 
-        TypeInfoCast type = TypeReslover.resolveCastType(expr_type, cast_type);
+        TypeInfoCast type = TypeResolver.resolveCastType(expr_type, cast_type);
         Expression castExpr = new CastExpression(expr, type);
         return castExpr;
     }
@@ -252,7 +252,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
             String lhs_type = left.getType();
             String rhs_type = right.getType();
-            TypeInfoBinop type = TypeReslover.resolveBinopNumericType(lhs_type, rhs_type);
+            TypeInfoBinop type = TypeResolver.resolveBinopNumericType(lhs_type, rhs_type);
             left = new MultiplicativeExpression(left, operator, right, type);
         }
         return left;

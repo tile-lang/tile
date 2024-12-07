@@ -12,6 +12,10 @@ public class ExpressionStmt implements Statement {
         this.generate = generate;
     }
 
+    public String getType() {
+        return expr.getType();
+    }
+
     @Override
     public String generateTasm(String generatedCode) {
         if (generate == true) {

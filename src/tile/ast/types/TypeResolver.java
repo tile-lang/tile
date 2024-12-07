@@ -2,7 +2,7 @@ package tile.ast.types;
 
 import java.util.Arrays;
 
-public class TypeReslover {
+public class TypeResolver {
     public static class TypeInfoBinop {
         public String result_type = null;
         public String lhs_type = null;
@@ -15,6 +15,12 @@ public class TypeReslover {
         public String result_type; // result type
         public String expr_type; // type of child expr
         public String cast_type; // wanted type for converting
+    }
+
+    public static class TypeInfoRetStmt {
+        public String result_type; // result type
+        public String expr_type; // type of child expr
+        public String ret_type; // return type of function
     }
 
     public static class TypeFuncCall {
@@ -59,6 +65,22 @@ public class TypeReslover {
         }
         // IMPORTANT: ti can have null values be careful!
         return ti;
+    }
+
+    public static TypeInfoRetStmt resolveRetStmtType(String expr, String ret) {
+        TypeInfoRetStmt tr = new TypeInfoRetStmt();
+        if (isNumericType(expr) && isNumericType(ret)) {
+            tr.expr_type = expr;
+            tr.ret_type = ret;
+
+            if (!(tr.expr_type.equals(tr.ret_type))) {
+                System.out.println("WARNING: autocast from type '" + tr.expr_type + "' to type '" + tr.ret_type + "' may be unwanted!");
+            }
+
+            tr.result_type = ret;
+        }
+        // IMPORTANT: tr can have null values be careful!
+        return tr;
     }
 
 }

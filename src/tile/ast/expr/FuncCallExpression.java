@@ -3,7 +3,7 @@ package tile.ast.expr;
 import java.util.List;
 import tile.ast.base.Expression;
 import tile.ast.stmt.FunctionDefinition;
-import tile.ast.types.TypeReslover.TypeFuncCall;
+import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.sym.TasmSymbolGenerator;
 
 public class FuncCallExpression implements Expression {

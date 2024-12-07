@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import tile.ast.base.Statement;
-import tile.ast.types.TypeReslover.TypeFuncCall;
+import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.sym.TasmSymbolGenerator;
 
 public class FunctionDefinition implements Statement {

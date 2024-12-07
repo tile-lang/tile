@@ -2,6 +2,8 @@ package tile;
 
 import java.util.ArrayList;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.ForStmtContext;
@@ -9,6 +11,7 @@ import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.IfStmtContext;
 import gen.antlr.tile.tileParser.LoopStmtContext;
+import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
 import gen.antlr.tile.tileParser.SelectionStmtContext;
 import gen.antlr.tile.tileParser.VariableStmtContext;
@@ -20,7 +23,10 @@ import tile.ast.stmt.ExpressionStmt;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.stmt.IfStmt;
-import tile.ast.types.TypeReslover.TypeFuncCall;
+import tile.ast.stmt.ReturnStmt;
+import tile.ast.types.TypeResolver;
+import tile.ast.types.TypeResolver.TypeFuncCall;
+import tile.ast.types.TypeResolver.TypeInfoRetStmt;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
@@ -113,8 +119,31 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitReturnStmt(ReturnStmtContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitReturnStmt(ctx);
+        ParserRuleContext parent = ctx;
+
+        while (!(parent instanceof FuncDefStmtContext)) {
+            parent = parent.getParent();
+            if (parent instanceof ProgramContext) {
+                parent = null;
+                break;
+            }
+        }
+        if (parent == null) {
+            int line = ctx.KW_RETURN().getSymbol().getLine();
+            System.err.println("ERROR:" + line + ": " + "return statement cannot be used outside a function definiton!");
+            return null;
+        }
+
+        Statement exprStmt = visit(ctx.expressionStmt());
+        
+        String func_ret_type = ((FuncDefStmtContext)parent).typeName().getText();
+        String expr_ret_type = ((ExpressionStmt)exprStmt).getType();
+
+        TypeInfoRetStmt rtype = TypeResolver.resolveRetStmtType(expr_ret_type, func_ret_type);
+
+        ReturnStmt rs = new ReturnStmt(exprStmt, rtype);
+        
+        return rs;
     }
 
     @Override

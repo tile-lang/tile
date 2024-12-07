@@ -1,7 +1,7 @@
 package tile.ast.expr;
 
 import tile.ast.base.Expression;
-import tile.ast.types.TypeReslover.TypeInfoCast;
+import tile.ast.types.TypeResolver.TypeInfoCast;
 
 public class CastExpression implements Expression {
 
