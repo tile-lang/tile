@@ -53,7 +53,16 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             generate = true;
         }
         AntlrToExpression exprVisitor = new AntlrToExpression();
-        Expression expr = exprVisitor.visit(ctx.expression());
+
+        // Allow empty semicolons as statements like:
+        // ;
+        Expression expr = null;
+        if (ctx.expression() == null) {
+            generate = false;
+        } else {
+            expr = exprVisitor.visit(ctx.expression());
+        }
+        // System.out.println("debug: expr: " + expr);
         Statement expressionStatement = new ExpressionStmt(expr, generate);
         return expressionStatement;
     }

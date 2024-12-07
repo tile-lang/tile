@@ -28,6 +28,7 @@ public class ReturnStmt implements Statement {
             generatedCode += "cf2i\n";
             typeInfo.result_type = "int";
         }
+        generatedCode += "    ret\n";
         return generatedCode;
     }
     

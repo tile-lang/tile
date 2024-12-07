@@ -219,5 +219,6 @@ typeName
     | KW_FLOAT
     | KW_BOOL
     | KW_FUNC
+    | KW_VOID
     | IDENTIFIER // For custom types like structs
     ;

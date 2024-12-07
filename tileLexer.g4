@@ -23,6 +23,9 @@ KW_FLOAT
 KW_BOOL
     : 'bool'
     ;
+KW_VOID
+    : 'void'
+    ;
 KW_TRUE
     : 'true'
     ;

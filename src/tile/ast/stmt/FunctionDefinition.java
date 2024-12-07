@@ -69,7 +69,10 @@ public class FunctionDefinition implements Statement {
                 generatedCode += "load " + (i) + "; ref " + args.get(i).type + " " + args.get(i).argId + "\n";
             }
         }
-        generatedCode += "    ret\n";
+
+        if (return_type.result_type.equals("void")) {
+            generatedCode += "    ret\n";
+        }
         generatedCode += "endp\n";
 
         return generatedCode;

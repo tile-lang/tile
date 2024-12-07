@@ -13,12 +13,15 @@ public class ExpressionStmt implements Statement {
     }
 
     public String getType() {
+        if (expr == null) {
+            return "void";
+        }
         return expr.getType();
     }
 
     @Override
     public String generateTasm(String generatedCode) {
-        if (generate == true) {
+        if (generate == true && expr != null) {
             generatedCode = expr.generateTasm(generatedCode);
         }
         return generatedCode;

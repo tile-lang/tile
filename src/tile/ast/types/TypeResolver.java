@@ -32,6 +32,10 @@ public class TypeResolver {
     public static boolean isNumericType(String type) {
         return Arrays.asList(NumericTypes).contains(type);
     }
+    
+    public static boolean isVoidType(String type) {
+        return type.equals("void");
+    }
 
     public static TypeInfoBinop resolveBinopNumericType(String lhs, String rhs) {
         // TODO: add auto cast feature
@@ -78,6 +82,14 @@ public class TypeResolver {
             }
 
             tr.result_type = ret;
+        } else {
+            tr.expr_type = expr;
+            tr.ret_type = ret;
+            if (isVoidType(expr) && isVoidType(ret)) {
+                tr.result_type = ret;
+            } else {
+                System.err.println("ERROR: expression type '" + tr.expr_type + "' does not match with function return type '" + tr.ret_type + "' causing error!");
+            }
         }
         // IMPORTANT: tr can have null values be careful!
         return tr;
