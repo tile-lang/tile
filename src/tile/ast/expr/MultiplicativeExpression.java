@@ -51,6 +51,12 @@ public class MultiplicativeExpression implements Expression {
             } else {
                 System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
             }
+        } else if (operator.equals("%")) {
+            if (!typeInfo.result_type.equals("int")) {
+                System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
+            } else {
+                generatedCode += "mod\n";
+            }
         }
         return generatedCode;
     }
