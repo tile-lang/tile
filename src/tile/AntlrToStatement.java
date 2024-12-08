@@ -105,6 +105,11 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         Statement stmt = null;
         Statement altarnateStmt = null;
 
+        if (!(expr.getType().equals("bool"))) {
+            int line = ctx.KW_IF().getSymbol().getLine();
+            System.err.println("WARNING:" + line + ": if condition expression type should be a bool type!");
+        }
+
         stmt = visit(ctx.blockStmt(0));
         
         if (ctx.KW_ELSE() != null) {
