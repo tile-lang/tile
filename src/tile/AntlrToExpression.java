@@ -30,11 +30,13 @@ import tile.ast.expr.CastExpression;
 import tile.ast.expr.FuncCallExpression;
 import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
+import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.UnaryExpression;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoBinop;
+import tile.ast.types.TypeResolver.TypeInfoBinopBool;
 import tile.ast.types.TypeResolver.TypeInfoCast;
 import tile.sym.TasmSymbolGenerator;
 
@@ -67,9 +69,9 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             }
             else if (ctx.BOOL_LITERAL() != null) {
                 String boolLiteral = ctx.BOOL_LITERAL().getText();
-                if (boolLiteral == "true")
+                if (boolLiteral.equals("true"))
                     expr = new PrimaryExpression(unaryOp, "1", "bool");
-                else if (boolLiteral == "false")
+                else if (boolLiteral.equals("false"))
                     expr = new PrimaryExpression(unaryOp, "0", "bool");
             }
             else if (ctx.IDENTIFIER() != null) {
@@ -86,6 +88,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             } else {
                 expr = innerExpr;
             }
+        } else {
+            System.out.println("TODO not reachable!");
         }
         return expr;
     }
@@ -260,8 +264,26 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitRelationalExpression(RelationalExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitRelationalExpression(ctx);
+        // If there's no operator, directly visit the single child (castExpression).
+        if (ctx.shiftExpression().size() == 1) {
+            return visit(ctx.shiftExpression(0));
+        }
+
+        // Otherwise, process the operator and operands.
+        Expression left = visit(ctx.shiftExpression(0)); // The first operand.
+        for (int i = 1; i < ctx.shiftExpression().size(); i++) {
+            // Get the operator (* or /).
+            String operator = ctx.getChild((i * 2) - 1).getText(); // Operators are at odd indices.
+
+            // Visit the right operand.
+            Expression right = visit(ctx.shiftExpression(i));
+
+            String lhs_type = left.getType();
+            String rhs_type = right.getType();
+            TypeInfoBinopBool type = TypeResolver.resolveBinopBooleanType(lhs_type, rhs_type);
+            left = new RelationalExpression(left, operator, right, type);
+        }
+        return left;
     }
 
     @Override

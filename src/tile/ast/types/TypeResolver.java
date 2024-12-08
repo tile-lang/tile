@@ -11,6 +11,11 @@ public class TypeResolver {
         public boolean rhs_auto_cast = false;
     }
 
+    public static class TypeInfoBinopBool {
+        public String result_type = "bool";
+        public TypeInfoBinop type;
+    }
+
     public static class TypeInfoCast {
         public String result_type; // result type
         public String expr_type; // type of child expr
@@ -37,6 +42,10 @@ public class TypeResolver {
         return type.equals("void");
     }
 
+    public static boolean isBoolType(String type) {
+        return type.equals("bool");
+    }
+
     public static TypeInfoBinop resolveBinopNumericType(String lhs, String rhs) {
         // TODO: add auto cast feature
         TypeInfoBinop ti = new TypeInfoBinop();
@@ -60,12 +69,51 @@ public class TypeResolver {
         return ti;
     }
 
+    public static TypeInfoBinopBool resolveBinopBooleanType(String lhs, String rhs) {
+        // TODO: add auto cast feature
+        TypeInfoBinop ti = new TypeInfoBinop();
+        if (lhs.equals("float") || rhs.equals("float")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "float";
+            if (lhs.equals("float") && !rhs.equals("float")) {
+                ti.rhs_auto_cast = true;
+            } else if (!lhs.equals("float") && rhs.equals("float")) {
+                ti.lhs_auto_cast = true;
+            }
+        } else if (lhs.equals("int") && rhs.equals("int")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "int";
+        // } else if (lhs.equals("bool") && rhs.equals("bool")) {
+        //     ti.lhs_type = lhs;
+        //     ti.rhs_type = rhs;
+        //     ti.result_type = "bool";
+        } else {
+            // err handling could be neccesarry
+        }
+
+        TypeInfoBinopBool tb = new TypeInfoBinopBool();
+        tb.type = ti;
+        tb.result_type = "bool";
+
+        return tb;
+    }
+
     public static TypeInfoCast resolveCastType(String expr, String cast) {
         TypeInfoCast ti = new TypeInfoCast();
-        if (isNumericType(expr) && isNumericType(cast)) {
-            ti.expr_type = expr;
-            ti.cast_type = cast;
-            ti.result_type = cast;
+        if (isNumericType(expr)) {
+            if (isNumericType(cast) || isBoolType(cast)) {
+                ti.expr_type = expr;
+                ti.cast_type = cast;
+                ti.result_type = cast;
+            }
+        } else if (isBoolType(expr)) {
+            if (isNumericType(cast) || isBoolType(cast)) {
+                ti.expr_type = expr;
+                ti.cast_type = cast;
+                ti.result_type = cast;
+            }
         }
         // IMPORTANT: ti can have null values be careful!
         return ti;
