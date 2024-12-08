@@ -1,7 +1,6 @@
 package tile.ast.expr;
 
 import tile.ast.base.Expression;
-import tile.ast.types.TypeResolver.TypeInfoBinop;
 import tile.ast.types.TypeResolver.TypeInfoBinopBool;
 
 public class RelationalExpression implements Expression {
