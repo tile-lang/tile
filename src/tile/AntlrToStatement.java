@@ -14,7 +14,9 @@ import gen.antlr.tile.tileParser.LoopStmtContext;
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
 import gen.antlr.tile.tileParser.SelectionStmtContext;
-import gen.antlr.tile.tileParser.VariableStmtContext;
+import gen.antlr.tile.tileParser.VariableAssignmentContext;
+import gen.antlr.tile.tileParser.VariableDeclerationContext;
+import gen.antlr.tile.tileParser.VariableDefinitionContext;
 import gen.antlr.tile.tileParser.WhileStmtContext;
 import gen.antlr.tile.tileParserBaseVisitor;
 import tile.ast.base.*;
@@ -24,15 +26,31 @@ import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.stmt.IfStmt;
 import tile.ast.stmt.ReturnStmt;
+import tile.ast.stmt.VariableDefinition;
+import tile.ast.stmt.BlockStmt.BlockType;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoRetStmt;
+import tile.ast.types.TypeResolver.TypeInfoVariableDef;
+import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitBlockStmt(BlockStmtContext ctx) {
-        Statement blockStmt = new BlockStmt();
+        BlockType blockType = BlockType.Regular;
+
+        if (ctx.getParent() instanceof IfStmtContext) {
+            blockType = BlockType.IfBlock;
+        } else if (ctx.getParent() instanceof FuncDefStmtContext) {
+            blockType = BlockType.FuncDefBlock;
+        } else if (ctx.getParent() instanceof WhileStmtContext) {
+            blockType = BlockType.WhileLoopBlock;
+        } else if (ctx.getParent() instanceof ForStmtContext) {
+            blockType = BlockType.ForLoopBlock;
+        }
+
+        Statement blockStmt = new BlockStmt(blockType);
         if (ctx.localStatements() == null) {
             return blockStmt;
         }
@@ -49,7 +67,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         // We need to eliminate code generation for ExpressionStmtContext whose parents are NOT ReturnStmtContext.
         // this will eliminate code lines like: "5;" or "3 + 8 * 2;" to generate 'push' and 'binop(mult, add etc.)' instructions.
         boolean generate = false;
-        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext)) {
+        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext) || ctx.getParent() instanceof VariableDefinitionContext) {
             generate = true;
         }
         AntlrToExpression exprVisitor = new AntlrToExpression();
@@ -90,11 +108,20 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             args.add(arg);
         }
         
-        BlockStmt block = new BlockStmt();
+        // just add decleration part, it is enough
+        fds = new FunctionDefinition(funcId, args, return_type, null);
+        // add to the hash table to see if it is defined when call the function
+        String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
+        FunctionDefinition.funcDefSymbols.put(tasmFuncSym, fds);
+
+        BlockStmt block = null;
         block = (BlockStmt)visit(ctx.getChild(ctx.getChildCount() - 1));
 
-
         fds = new FunctionDefinition(funcId, args, return_type, block);
+        // set that functionDef with same functionDef but with it has the blockStmt version
+        // ^^^^^^^^^^^^ this makes variableSymbols of each function empty again!!!
+        // FunctionDefinition.funcDefSymbols.put(tasmFuncSym, fds);
+
         return fds;
     }
 
@@ -167,15 +194,61 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     }
 
     @Override
-    public Statement visitVariableStmt(VariableStmtContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitVariableStmt(ctx);
-    }
-
-    @Override
     public Statement visitWhileStmt(WhileStmtContext ctx) {
         // TODO Auto-generated method stub
         return super.visitWhileStmt(ctx);
+    }
+
+    @Override
+    public Statement visitVariableAssignment(VariableAssignmentContext ctx) {
+        // TODO Auto-generated method stub
+        return super.visitVariableAssignment(ctx);
+    }
+
+    @Override
+    public Statement visitVariableDecleration(VariableDeclerationContext ctx) {
+        // TODO Auto-generated method stub
+        return super.visitVariableDecleration(ctx);
+    }
+
+    @Override
+    public Statement visitVariableDefinition(VariableDefinitionContext ctx) {
+        String type = ctx.typeName().getText();
+        String varId = ctx.IDENTIFIER().getText();
+        Statement exprStmt = visit(ctx.expressionStmt());
+
+        // find the funcId
+        ParserRuleContext parent = ctx;
+        while (!(parent instanceof FuncDefStmtContext)) {
+            parent = parent.getParent();
+            if (parent instanceof ProgramContext) {
+                parent = null;
+                break;
+            }
+        }
+        String funcId = "";
+        if (parent != null) {
+            funcId = ((FuncDefStmtContext)parent).IDENTIFIER().getText();
+        } else {
+            System.out.println("ERROR: visitVariableDecleration parent is null!");
+        }
+
+
+        // find the function
+        String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
+        FunctionDefinition fd = FunctionDefinition.funcDefSymbols.get(tasmFuncSym);
+
+        String exprType = ((ExpressionStmt)exprStmt).getType();
+        TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
+
+        VariableDefinition vd = new VariableDefinition(typeInfo, varId, exprStmt);
+        vd.setTasmIdx(fd.getTasmVarIdx());
+        
+        // put the variable to function's hashtable
+        String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, varId);
+        fd.variableSymbols.put(tasmVarSym, vd);
+
+        return vd;
     }
 
     
