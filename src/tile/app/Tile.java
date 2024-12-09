@@ -2,6 +2,7 @@ package tile.app;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.CharStream;
@@ -14,6 +15,7 @@ import gen.antlr.tile.tileParser;
 import tile.AntlrToProgram;
 import tile.Program;
 import tile.ast.stmt.FunctionDefinition;
+import tile.ast.stmt.VariableDefinition;
 
 public class Tile {
     public static void main(String args[]) {
@@ -24,9 +26,15 @@ public class Tile {
 
         program.generate();
 
-        System.out.println(FunctionDefinition.funcDefSymbols.keySet());
-        for (FunctionDefinition value : FunctionDefinition.funcDefSymbols.values()) {
-            System.out.println(value.variableSymbols.keySet());
+        
+        for (Map.Entry<String, FunctionDefinition> entry : FunctionDefinition.funcDefSymbols.entrySet()) {
+            String funcKey = entry.getKey();
+            String varKeys = "";
+            for (Map.Entry<String, VariableDefinition> varEntry : entry.getValue().variableSymbols.entrySet()) {
+                varKeys += varEntry.getKey() + ": " + varEntry.getValue().getTasmIdx() + ", ";
+            }
+
+            System.out.println(funcKey + " -> " +  varKeys);
         }
     }
 
