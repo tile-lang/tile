@@ -11,14 +11,24 @@ options {
 }
 
 program
-    : statements? EOF
+    : globalStatements? EOF
     ;
 
-statements
-    : statement+
+globalStatements
+    : globalStatement+
     ;
 
-statement
+globalStatement
+    : expressionStmt
+    | variableStmt
+    | funcDefStmt
+    ;
+
+localStatements
+    : localStatement+
+    ;
+
+localStatement
     : expressionStmt
     | variableStmt
     | loopStmt
@@ -207,7 +217,7 @@ returnStmt
     ;
 
 blockStmt
-    : '{' statements? '}'
+    : '{' localStatements? '}'
     ;
 
 argument

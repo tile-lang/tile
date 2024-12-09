@@ -33,12 +33,12 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     @Override
     public Statement visitBlockStmt(BlockStmtContext ctx) {
         Statement blockStmt = new BlockStmt();
-        if (ctx.statements() == null) {
+        if (ctx.localStatements() == null) {
             return blockStmt;
         }
         
-        for (int i = 0; i < ctx.statements().statement().size(); i++) {
-            Statement stmt = visit(ctx.statements().statement(i));
+        for (int i = 0; i < ctx.localStatements().localStatement().size(); i++) {
+            Statement stmt = visit(ctx.localStatements().localStatement(i));
             ((BlockStmt)blockStmt).addStatement(stmt);
         }
         return blockStmt;

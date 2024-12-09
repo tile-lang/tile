@@ -11,8 +11,8 @@ public class AntlrToProgram extends tileParserBaseVisitor<Program>{
         Program program = new Program();
 
         AntlrToStatement statementVisitor = new AntlrToStatement();
-        for (int i = 0; i < ctx.statements().statement().size(); i++) {
-            Statement stmt = statementVisitor.visit(ctx.statements().statement(i));
+        for (int i = 0; i < ctx.globalStatements().globalStatement().size(); i++) {
+            Statement stmt = statementVisitor.visit(ctx.globalStatements().globalStatement(i));
             program.addStatement(stmt);
         }
 
