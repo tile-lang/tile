@@ -21,14 +21,15 @@ public class CastExpression implements Expression {
     @Override
     public String generateTasm(String generatedCode) {
         generatedCode = expr.generateTasm(generatedCode);
-        generatedCode += "    ";
         if (typeInfo.expr_type.equals("int") && typeInfo.cast_type.equals("float")) {
+            generatedCode += "    ";
             generatedCode += "; cast float to int\n";
             generatedCode += "    ";
             generatedCode += "ci2f\n";
             typeInfo.result_type = "float";
         }
         else if (typeInfo.expr_type.equals("float") && typeInfo.cast_type.equals("int")) {
+            generatedCode += "    ";
             generatedCode += "; cast int to float\n";
             generatedCode += "    ";
             generatedCode += "cf2i\n";
