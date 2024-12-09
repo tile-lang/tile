@@ -161,19 +161,19 @@ assignmentOperator
     ;
 
 variableStmt
-    : (variableDecleration | variableDefinition | variableAssignment) ';'
+    : (variableDecleration | variableDefinition | variableAssignment)
     ;
 
 variableDecleration
-    : typeName IDENTIFIER
+    : typeName IDENTIFIER ';'
     ;
 
 variableDefinition
-    : typeName IDENTIFIER '=' expression
+    : typeName IDENTIFIER '=' expressionStmt
     ;
 
 variableAssignment
-    : IDENTIFIER assignmentOperator expression
+    : IDENTIFIER assignmentOperator expressionStmt
     ;
 
 loopStmt
