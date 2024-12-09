@@ -4,7 +4,6 @@ public class TasmSymbolGenerator {
 
     private static String FUNCTION_SYM_PREFIX = "func_";
     private static String VARIABLE_SYM_PREFIX = "var_";
-    private static int tasmVariableIdx = 0;
 
     //TODO: make it able to overloadable!
     public static String tasmGenFunctionName(String funcId) {
