@@ -50,7 +50,7 @@ public class FunctionDefinition implements Statement {
         this.return_type = return_type;
         this.block = block;
         this.variableSymbols = new HashMap<>();
-        tasmVarIdx = args.size();
+        tasmVarIdx = 0;//args.size();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class FunctionDefinition implements Statement {
         if (return_type.result_type.equals("void")) {
             generatedCode += "    ret\n";
         }
-        generatedCode += "endp\n";
+        generatedCode += "endp\n\n";
 
         return generatedCode;
     }

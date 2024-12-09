@@ -20,6 +20,14 @@ public class VariableDefinition implements Statement {
         tasmIdx = idx;
     }
 
+    public int getTasmIdx() {
+        return tasmIdx;
+    }
+
+    public String getType() {
+        return typeInfo.var_type;
+    }
+
     @Override
     public String generateTasm(String generatedCode) {
         if (exprStmt != null)

@@ -110,6 +110,21 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         
         // just add decleration part, it is enough
         fds = new FunctionDefinition(funcId, args, return_type, null);
+
+
+        // add the parameter variables to function's variableSymbols table
+        for (int i = 0; i < args.size(); i++) {
+            String varId = args.get(i).getArgId();
+            String varType = args.get(i).getType();
+            TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefForFunctionArgs(varType);
+
+            VariableDefinition vd = new VariableDefinition(typeInfo, varId, fds);
+            String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, varId);
+            vd.setTasmIdx(fds.getTasmVarIdx());
+            fds.variableSymbols.put(tasmVarSym, vd);
+        }
+
+
         // add to the hash table to see if it is defined when call the function
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
         FunctionDefinition.funcDefSymbols.put(tasmFuncSym, fds);
@@ -230,6 +245,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         if (parent != null) {
             funcId = ((FuncDefStmtContext)parent).IDENTIFIER().getText();
         } else {
+            // FIXME: allow user to create global variables...
             System.out.println("ERROR: visitVariableDecleration parent is null!");
         }
 
