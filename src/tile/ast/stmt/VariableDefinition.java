@@ -1,8 +1,5 @@
 package tile.ast.stmt;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import tile.ast.base.Statement;
 import tile.ast.types.TypeResolver.TypeInfoVariableDef;
 
@@ -25,8 +22,6 @@ public class VariableDefinition implements Statement {
 
     @Override
     public String generateTasm(String generatedCode) {
-        String exprType = ((ExpressionStmt)exprStmt).getType();
-
         if (exprStmt != null)
             generatedCode = ((ExpressionStmt)exprStmt).generateTasm(generatedCode);
 
