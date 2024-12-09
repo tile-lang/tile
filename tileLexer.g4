@@ -23,11 +23,8 @@ KW_FLOAT
 KW_BOOL
     : 'bool'
     ;
-KW_TRUE
-    : 'true'
-    ;
-KW_FALSE
-    : 'false'
+KW_VOID
+    : 'void'
     ;
 KW_WHILE
     : 'while'
@@ -249,8 +246,8 @@ FLOAT_LITERAL
     ;
 
 BOOL_LITERAL
-    : KW_TRUE
-    | KW_FALSE
+    : 'true'
+    | 'false'
     ;
 
 STRING_LITERAL

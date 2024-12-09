@@ -24,9 +24,10 @@ antlr: gen build
 gen:
 	java -jar $(ANTLR) -Dlanguage=Java -visitor -package $(PACKAGE) ./$(LANG_PARSER).g4 ./$(LANG_LEXER).g4 -o $(PACKAGE_PATH)
 
+# $(MKDIR_P)
 build:
 	$(MKDIR_P)
-	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java src/tile/ast/types/*.java -d $(BUILD)
+	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java src/tile/ast/types/*.java src/tile/sym/*.java -d $(BUILD)
 
 run:
 	java -cp "$(ANTLR)$(CLASSPATH_SEP).$(CLASSPATH_SEP)$(BUILD)" org.antlr.v4.gui.TestRig $(PACKAGE).$(LANG) $(RULE) -gui ./examples/test.tile

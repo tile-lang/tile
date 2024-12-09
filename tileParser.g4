@@ -11,14 +11,24 @@ options {
 }
 
 program
-    : statements? EOF
+    : globalStatements? EOF
     ;
 
-statements
-    : statement+
+globalStatements
+    : globalStatement+
     ;
 
-statement
+globalStatement
+    : expressionStmt
+    | variableStmt
+    | funcDefStmt
+    ;
+
+localStatements
+    : localStatement+
+    ;
+
+localStatement
     : expressionStmt
     | variableStmt
     | loopStmt
@@ -67,9 +77,9 @@ unaryExpression
     ;
 
 unaryOperator
-    // : '+'
-    // | '-'
-    : '~'
+    : '+'
+    | '-'
+    | '~'
     | '!'
     ;
 
@@ -79,8 +89,9 @@ funcCallExpression
 
 castExpression
     : '(' typeName ')' primaryExpression
-    // | unaryExpression
     | primaryExpression
+    | '(' typeName ')' unaryExpression
+    | unaryExpression
     | '(' typeName ')' funcCallExpression
     | funcCallExpression
     ;
@@ -150,19 +161,19 @@ assignmentOperator
     ;
 
 variableStmt
-    : (variableDecleration | variableDefinition | variableAssignment) ';'
+    : (variableDecleration | variableDefinition | variableAssignment)
     ;
 
 variableDecleration
-    : typeName IDENTIFIER
+    : typeName IDENTIFIER ';'
     ;
 
 variableDefinition
-    : typeName IDENTIFIER '=' expression
+    : typeName IDENTIFIER '=' expressionStmt
     ;
 
 variableAssignment
-    : IDENTIFIER assignmentOperator expression
+    : IDENTIFIER assignmentOperator expressionStmt
     ;
 
 loopStmt
@@ -206,7 +217,7 @@ returnStmt
     ;
 
 blockStmt
-    : '{' statements? '}'
+    : '{' localStatements? '}'
     ;
 
 argument
@@ -218,5 +229,6 @@ typeName
     | KW_FLOAT
     | KW_BOOL
     | KW_FUNC
+    | KW_VOID
     | IDENTIFIER // For custom types like structs
     ;

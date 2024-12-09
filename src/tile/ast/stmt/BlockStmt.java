@@ -6,17 +6,31 @@ import tile.ast.base.Statement;
 
 public class BlockStmt implements Statement {
 
+    public static enum BlockType {
+        Regular,
+        IfBlock,
+        FuncDefBlock,
+        WhileLoopBlock,
+        ForLoopBlock
+    }
+
+    private BlockType blockType;
     private List<Statement> statements;
 
     public static int scopeId = 0;
     public static int ifStmtId = 0;
 
-    public BlockStmt() {
+    public BlockStmt(BlockType blockType) {
+        this.blockType = blockType;
         this.statements = new ArrayList<>();
     }
 
     public void addStatement(Statement stmt) {
         statements.add(stmt);
+    }
+
+    public BlockType getBlockType() {
+        return blockType;
     }
 
     @Override
@@ -26,7 +40,9 @@ public class BlockStmt implements Statement {
             generatedCode = statements.get(i).generateTasm(generatedCode);
         }
         scopeId--;
-        ifStmtId++;
+        if (this.blockType == BlockType.IfBlock) {
+            ifStmtId++;
+        }
         return generatedCode;
     }
     

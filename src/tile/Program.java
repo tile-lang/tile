@@ -31,7 +31,8 @@ public class Program extends Generator {
 
         generatedCode += "__start:\n";
         generatedCode += "\n";
-        generatedCode += "call main\n";
+        generatedCode += "push 0 ; argc\npush 0 ; argv\n"; // for simulating argc and argv for now
+        generatedCode += "call func_main_\n";
         generatedCode += "\n";
         generatedCode += "hlt\n";
 

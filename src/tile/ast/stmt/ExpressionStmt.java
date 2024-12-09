@@ -5,14 +5,26 @@ import tile.ast.base.*;
 public class ExpressionStmt implements Statement {
 
     private Expression expr;
+    private boolean generate;
 
-    public ExpressionStmt(Expression expr) {
+    public ExpressionStmt(Expression expr, boolean generate) {
         this.expr = expr;
+        this.generate = generate;
+    }
+
+    public String getType() {
+        if (expr == null) {
+            return "void";
+        }
+        return expr.getType();
     }
 
     @Override
     public String generateTasm(String generatedCode) {
-        return expr.generateTasm(generatedCode);
+        if (generate == true && expr != null) {
+            generatedCode = expr.generateTasm(generatedCode);
+        }
+        return generatedCode;
     }
     
 }
