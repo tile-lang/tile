@@ -10,11 +10,13 @@ import gen.antlr.tile.tileParser.ExclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.ExpressionContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.FuncCallExpressionContext;
+import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.InclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.LogicalAndExpressionContext;
 import gen.antlr.tile.tileParser.LogicalOrExpressionContext;
 import gen.antlr.tile.tileParser.MultiplicativeExpressionContext;
 import gen.antlr.tile.tileParser.PrimaryExpressionContext;
+import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.RelationalExpressionContext;
 import gen.antlr.tile.tileParser.ShiftExpressionContext;
 import gen.antlr.tile.tileParser.UnaryExpressionContext;
@@ -57,27 +59,56 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         if (count == 1) { 
             if (ctx.INT_LITERAL() != null) {
                 String intLiteral = ctx.INT_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, intLiteral, "int");
+                expr = new PrimaryExpression(unaryOp, intLiteral, "int", false, 0);
             }
             else if (ctx.FLOAT_LITERAL() != null) {
                 String floatLiteral = ctx.FLOAT_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, floatLiteral, "float");
+                expr = new PrimaryExpression(unaryOp, floatLiteral, "float", false, 0);
             }
             else if (ctx.CHAR_LITERAL() != null) {
                 String chrLiteral = ctx.CHAR_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, chrLiteral, "char");
+                expr = new PrimaryExpression(unaryOp, chrLiteral, "char", false, 0);
             }
             else if (ctx.BOOL_LITERAL() != null) {
                 String boolLiteral = ctx.BOOL_LITERAL().getText();
                 if (boolLiteral.equals("true"))
-                    expr = new PrimaryExpression(unaryOp, "1", "bool");
+                    expr = new PrimaryExpression(unaryOp, "1", "bool", false, 0);
                 else if (boolLiteral.equals("false"))
-                    expr = new PrimaryExpression(unaryOp, "0", "bool");
+                    expr = new PrimaryExpression(unaryOp, "0", "bool", false, 0);
             }
             else if (ctx.IDENTIFIER() != null) {
                 String identifier = ctx.IDENTIFIER().getText();
-                // FIXME: find the correct type from a lookup table!
-                expr = new PrimaryExpression(unaryOp, identifier, "Object");
+                
+                ParserRuleContext parentFunc = ctx;
+                while (!(parentFunc instanceof FuncDefStmtContext)) {
+                    parentFunc = parentFunc.getParent();
+                    if (parentFunc instanceof ProgramContext) {
+                        parentFunc = null;
+                        break;
+                    }
+                }
+                if (parentFunc == null) {
+                    int line = ctx.IDENTIFIER().getSymbol().getLine();
+                    // FIXME: allow variable def outside functions!
+                    System.err.println("ERROR:" + line + ": " + "variable definition outside a function!");
+                    return null;
+                }
+                
+                String funcId = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getText();
+                String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
+                FunctionDefinition fds = FunctionDefinition.funcDefSymbols.get(tasmFuncSym);
+
+                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, identifier);
+
+                if (!fds.variableSymbols.containsKey(tasmVarSym)) {
+                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
+                }
+
+                int tasmIdx = fds.variableSymbols.get(tasmVarSym).getTasmIdx();
+                String varType = fds.variableSymbols.get(tasmVarSym).getType();
+
+                expr = new PrimaryExpression(unaryOp, identifier, varType, true, tasmIdx);
             }
         } else if (count == 3 && ctx.getChild(0).getText().equals("(") && ctx.getChild(2).getText().equals(")")) {
             // Parentheses case: Visit the inner expression

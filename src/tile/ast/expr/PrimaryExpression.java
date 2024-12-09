@@ -6,14 +6,18 @@ public class PrimaryExpression implements Expression {
 
     private String value;
     private String type;
+    private boolean isIdentifier;
+    private int identifierTasmIdx;
 
-    public PrimaryExpression(String unaryOp, String value, String type) {
+    public PrimaryExpression(String unaryOp, String value, String type, boolean isIdentifier, int tasmIdx) {
         if (unaryOp != null) {
             this.value = unaryOp + value;
         } else {
             this.value = value;
         }
         this.type = type;
+        this.isIdentifier = isIdentifier;
+        this.identifierTasmIdx = tasmIdx;
     }
 
     @Override
@@ -24,7 +28,11 @@ public class PrimaryExpression implements Expression {
     @Override
     public String generateTasm(String generatedCode) {
         generatedCode += "    ";
-        generatedCode += "push " + value + "\n";
+        if (isIdentifier) {
+            generatedCode += "load " + identifierTasmIdx + "\n";
+        } else {
+            generatedCode += "push " + value + "\n";
+        }
         return generatedCode;
     }
     
