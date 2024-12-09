@@ -32,6 +32,13 @@ public class TypeResolver {
         public String result_type; // result type
     }
 
+    public static class TypeInfoVariableDef {
+        public String result_type = null;
+        public String var_type = null;
+        public boolean auto_cast = false;
+        public String expr_type = null;
+    }
+
     public static String[] NumericTypes = {"int", "float"};
     
     public static boolean isNumericType(String type) {
@@ -141,6 +148,21 @@ public class TypeResolver {
         }
         // IMPORTANT: tr can have null values be careful!
         return tr;
+    }
+
+    public static TypeInfoVariableDef resolveVariableDefType(String var_type, String expr_type) {
+        TypeInfoVariableDef vd = new TypeInfoVariableDef();
+        if (isNumericType(var_type) && isNumericType(expr_type)) {
+            vd.auto_cast = true;
+            vd.expr_type = expr_type;
+            vd.var_type = var_type;
+            vd.result_type = var_type;
+            if (var_type.equals("int") && expr_type.equals("float")) {
+                System.out.println("WARNING: autocast from type '" + vd.expr_type + "' to type '" + vd.var_type + "' may be unwanted!");
+            }
+        }
+        // IMPORTANT: vd can have null values be careful!
+        return vd;
     }
 
 }
