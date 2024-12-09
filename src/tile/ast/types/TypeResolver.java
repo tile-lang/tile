@@ -92,10 +92,8 @@ public class TypeResolver {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
             ti.result_type = "int";
-        // } else if (lhs.equals("bool") && rhs.equals("bool")) {
-        //     ti.lhs_type = lhs;
-        //     ti.rhs_type = rhs;
-        //     ti.result_type = "bool";
+        } else if (lhs.equals("bool") || rhs.equals("bool")) {
+            System.err.println("ERROR: boolean type cannot be comparable with <, > , <=, >= operators");
         } else {
             // err handling could be neccesarry
         }
@@ -160,6 +158,17 @@ public class TypeResolver {
             if (var_type.equals("int") && expr_type.equals("float")) {
                 System.out.println("WARNING: autocast from type '" + vd.expr_type + "' to type '" + vd.var_type + "' may be unwanted!");
             }
+        }
+        // IMPORTANT: vd can have null values be careful!
+        return vd;
+    }
+
+    public static TypeInfoVariableDef resolveVariableDefForFunctionArgs(String var_type) {
+        TypeInfoVariableDef vd = new TypeInfoVariableDef();
+        if (isNumericType(var_type)) {
+            vd.auto_cast = false;
+            vd.var_type = var_type;
+            vd.result_type = var_type;
         }
         // IMPORTANT: vd can have null values be careful!
         return vd;
