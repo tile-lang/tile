@@ -101,7 +101,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, identifier);
 
                 if (!fds.variableSymbols.containsKey(tasmVarSym)) {
-                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    int line = ctx.IDENTIFIER().getSymbol().getLine();
                     System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
                 }
 
