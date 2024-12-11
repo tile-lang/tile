@@ -1,7 +1,7 @@
 package tile.ast.expr;
 
 import tile.ast.base.Expression;
-import tile.ast.types.TypeReslover.TypeInfoBinop;
+import tile.ast.types.TypeResolver.TypeInfoBinop;
 
 public class MultiplicativeExpression implements Expression {
 
@@ -50,6 +50,12 @@ public class MultiplicativeExpression implements Expression {
                 generatedCode += "div\n";
             } else {
                 System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
+            }
+        } else if (operator.equals("%")) {
+            if (!typeInfo.result_type.equals("int")) {
+                System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
+            } else {
+                generatedCode += "mod\n";
             }
         }
         return generatedCode;
