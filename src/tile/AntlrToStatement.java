@@ -127,6 +127,12 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         // add to the hash table to see if it is defined when call the function
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
+
+        // check if it variable with same name is already defined
+        if (FunctionDefinition.funcDefSymbols.containsKey(tasmFuncSym)) {
+            int line = ctx.IDENTIFIER().getSymbol().getLine();
+            System.err.println("ERROR:" + line + ": function '" + funcId + "' is already defined.");
+        }
         FunctionDefinition.funcDefSymbols.put(tasmFuncSym, fds);
 
         BlockStmt block = null;
@@ -262,6 +268,12 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         
         // put the variable to function's hashtable
         String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, varId);
+
+        // check if it variable with same name is already defined
+        if (fd.variableSymbols.containsKey(tasmVarSym)) {
+            int line = ctx.IDENTIFIER().getSymbol().getLine();
+            System.err.println("ERROR:" + line + ": variable '" + varId + "' is already defined in function '" + funcId + "'.");
+        }
         fd.variableSymbols.put(tasmVarSym, vd);
 
         return vd;
