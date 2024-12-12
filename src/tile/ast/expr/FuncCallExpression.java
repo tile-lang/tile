@@ -1,8 +1,9 @@
 package tile.ast.expr;
 
 import java.util.List;
+
+import tile.Program;
 import tile.ast.base.Expression;
-import tile.ast.stmt.FunctionDefinition;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.sym.TasmSymbolGenerator;
 
@@ -23,7 +24,7 @@ public class FuncCallExpression implements Expression {
     @Override
     public String generateTasm(String generatedCode) {
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
-        FunctionDefinition.funcDefSymbols.get(tasmFuncSym).getArgs().size();
+        Program.funcDefSymbols.get(tasmFuncSym).getArgs().size();
         
         // TODO: Be sure about not passing naked expressions when an arg declared as 'ref'!
 

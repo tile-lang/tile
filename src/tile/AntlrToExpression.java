@@ -10,13 +10,11 @@ import gen.antlr.tile.tileParser.ExclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.ExpressionContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.FuncCallExpressionContext;
-import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.InclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.LogicalAndExpressionContext;
 import gen.antlr.tile.tileParser.LogicalOrExpressionContext;
 import gen.antlr.tile.tileParser.MultiplicativeExpressionContext;
 import gen.antlr.tile.tileParser.PrimaryExpressionContext;
-import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.RelationalExpressionContext;
 import gen.antlr.tile.tileParser.ShiftExpressionContext;
 import gen.antlr.tile.tileParser.UnaryExpressionContext;
@@ -34,7 +32,7 @@ import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.UnaryExpression;
-import tile.ast.stmt.FunctionDefinition;
+import tile.ast.stmt.BlockStmt;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoBinop;
@@ -78,35 +76,60 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             }
             else if (ctx.IDENTIFIER() != null) {
                 String identifier = ctx.IDENTIFIER().getText();
+
+                // int line = ctx.IDENTIFIER().getSymbol().getLine();
+                // FIXME: allow variable def outside functions!
+                // System.err.println("ERROR:" + line + ": " + "variable definition outside a function!");
                 
-                ParserRuleContext parentFunc = ctx;
-                while (!(parentFunc instanceof FuncDefStmtContext)) {
-                    parentFunc = parentFunc.getParent();
-                    if (parentFunc instanceof ProgramContext) {
-                        parentFunc = null;
+                // TODO: check edge cases!!!
+                
+                BlockStmt blck = null;                
+                int counter = 0;
+                while (blck == null) {
+                    int index  = (Program.blockStack.size() - 1) - counter;
+                    if (index >= 0) {
+                        blck = Program.blockStack.get(index);
+                    } else {
                         break;
                     }
+                    counter++;
                 }
-                if (parentFunc == null) {
-                    int line = ctx.IDENTIFIER().getSymbol().getLine();
-                    // FIXME: allow variable def outside functions!
-                    System.err.println("ERROR:" + line + ": " + "variable definition outside a function!");
-                    return null;
+
+                int blockId = blck.getBlockId();
+                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, identifier);
+
+                // if (blck.variableSymbols.containsKey(tasmVarSym)) {
+                //     int line = ctx.IDENTIFIER().getSymbol().getLine();
+                //     System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
+                // }
+
+                counter = 0;
+                while (blck.variableSymbols.get(tasmVarSym) == null) {
+                    int index  = (Program.blockStack.size() - 1) - counter;
+                    if (index >= 0) {
+                        // System.out.println("bid: " + blockId);
+                        blck = Program.blockStack.get(index);
+                        blockId = blck.getBlockId();
+                        tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, identifier);
+                    } else {
+                        break;
+                    }
+                    counter++;
                 }
-                
-                String funcId = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getText();
-                String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
-                FunctionDefinition fds = FunctionDefinition.funcDefSymbols.get(tasmFuncSym);
 
-                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, identifier);
+                // System.out.println(blck.variableSymbols.get(tasmVarSym));
+                // System.out.println(tasmVarSym);
+                // System.out.println(counter);
 
-                if (!fds.variableSymbols.containsKey(tasmVarSym)) {
+                int tasmIdx = -1;
+                String varType = "";
+                try {
+                    tasmIdx = blck.variableSymbols.get(tasmVarSym).getTasmIdx();
+                    varType = blck.variableSymbols.get(tasmVarSym).getType();
+                } catch (Exception e) {
                     int line = ctx.IDENTIFIER().getSymbol().getLine();
                     System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
                 }
-
-                int tasmIdx = fds.variableSymbols.get(tasmVarSym).getTasmIdx();
-                String varType = fds.variableSymbols.get(tasmVarSym).getType();
 
                 expr = new PrimaryExpression(unaryOp, identifier, varType, true, tasmIdx);
             }
@@ -227,14 +250,14 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         int line = ctx.IDENTIFIER().getSymbol().getLine();
 
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
-
+        //FIXME:
         try {
-            type.result_type = FunctionDefinition.funcDefSymbols.get(tasmFuncSym).getReturnType();
+            type.result_type = Program.funcDefSymbols.get(tasmFuncSym).getReturnType();
         } catch (NullPointerException e) {
             System.err.println("ERROR:" + line + ": function " + funcId + " is not defined before called.");
         }
 
-        int arg_size = FunctionDefinition.funcDefSymbols.get(tasmFuncSym).getArgs().size();
+        int arg_size = Program.funcDefSymbols.get(tasmFuncSym).getArgs().size();
 
         if (arg_size != ctx.expression().size()) {
             System.err.println("ERROR:" + line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " +ctx.expression().size());

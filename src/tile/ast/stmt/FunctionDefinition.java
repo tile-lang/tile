@@ -1,17 +1,12 @@
 package tile.ast.stmt;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import tile.ast.base.Statement;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.sym.TasmSymbolGenerator;
 
 public class FunctionDefinition implements Statement {
-
-    public static Map<String, FunctionDefinition> funcDefSymbols = new HashMap<>();
-    public Map<String, VariableDefinition> variableSymbols;
 
     public static class FuncArg {
         private String type;
@@ -49,7 +44,6 @@ public class FunctionDefinition implements Statement {
         this.args = args;
         this.return_type = return_type;
         this.block = block;
-        this.variableSymbols = new HashMap<>();
         tasmVarIdx = 0;//args.size();
     }
 
@@ -77,6 +71,14 @@ public class FunctionDefinition implements Statement {
         generatedCode += "endp\n\n";
 
         return generatedCode;
+    }
+
+    public void setBlockStmt(BlockStmt block) {
+        this.block = block;
+    }
+
+    public BlockStmt getBlockStmt() {
+        return (BlockStmt)block;
     }
 
     public String getFuncId() {

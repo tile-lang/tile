@@ -10,7 +10,8 @@ public class TasmSymbolGenerator {
         return FUNCTION_SYM_PREFIX + funcId + "_";
     }
 
-    public static String tasmGenVariableName(String funcId, String varId) {
-        return tasmGenFunctionName(funcId) + VARIABLE_SYM_PREFIX + varId;
+    public static String tasmGenVariableName(int blockId, String varId) {
+        String blockStr = Integer.toString(blockId);
+        return VARIABLE_SYM_PREFIX + varId + "_" + blockStr;
     }
 }
