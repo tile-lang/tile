@@ -22,6 +22,7 @@ globalStatement
     : expressionStmt
     | variableStmt
     | funcDefStmt
+    | nativeFuncDeclStmt
     ;
 
 localStatements
@@ -212,6 +213,10 @@ funcDefStmt
     : KW_FUNC IDENTIFIER '(' (argument)? (',' argument)* ')' ':' typeName blockStmt
     ;
 
+nativeFuncDeclStmt
+    : KW_NATIVE KW_FUNC IDENTIFIER '(' (cArgument)? (',' cArgument)* ')' ':' cTypeName ';'
+    ;
+
 returnStmt
     : KW_RETURN expressionStmt
     ;
@@ -224,11 +229,41 @@ argument
     : KW_REF? typeName IDENTIFIER
     ;
 
+cArgument
+    : cTypeName IDENTIFIER
+    ;
+
 typeName
+    : primaryTypeName
+    | primaryArrTypeName
+    ;
+
+primaryArrTypeName
+    : primaryTypeName '['']'
+    ;
+
+primaryTypeName
     : KW_INT
     | KW_FLOAT
     | KW_BOOL
+    | KW_CHAR
     | KW_FUNC
     | KW_VOID
     | IDENTIFIER // For custom types like structs
+    ;
+
+cTypeName
+    : KW_CINT8
+    | KW_CINT16
+    | KW_CINT32
+    | KW_CINT64
+    | KW_CUINT8
+    | KW_CUINT16
+    | KW_CUINT32
+    | KW_CUINT64
+    | KW_CFLOAT32
+    | KW_CFLOAT64
+    | KW_CPTR
+    | KW_CVOID
+    // | IDENTIFIER // For custom types like structs
     ;
