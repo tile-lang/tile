@@ -249,15 +249,28 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         TypeFuncCall type = new TypeFuncCall();
         int line = ctx.IDENTIFIER().getSymbol().getLine();
 
+        boolean is_native = false;
+
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
         //FIXME:
         try {
             type.result_type = Program.funcDefSymbols.get(tasmFuncSym).getReturnType();
-        } catch (NullPointerException e) {
-            System.err.println("ERROR:" + line + ": function " + funcId + " is not defined before called.");
+        } catch (NullPointerException ne) {
+            
+            try {
+                type.result_type = Program.nativeFuncDeclSymbols.get(funcId).getReturnType();
+                is_native = true;
+            } catch (Exception e) {
+                System.err.println("ERROR:" + line + ": function " + funcId + " is not defined before called.");
+            }
         }
 
-        int arg_size = Program.funcDefSymbols.get(tasmFuncSym).getArgs().size();
+        int arg_size = -1;
+        if (is_native == false) {
+            arg_size = Program.funcDefSymbols.get(tasmFuncSym).getArgs().size();
+        } else {
+            arg_size = Program.nativeFuncDeclSymbols.get(funcId).getArgs().size();
+        }
 
         if (arg_size != ctx.expression().size()) {
             System.err.println("ERROR:" + line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " +ctx.expression().size());
@@ -269,7 +282,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             arg_exprs.add(expr);
         }
 
-        FuncCallExpression fce = new FuncCallExpression(funcId, arg_exprs, type, false);
+        FuncCallExpression fce = new FuncCallExpression(funcId, arg_exprs, type, is_native);
 
         return fce;
     }

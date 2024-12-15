@@ -11,11 +11,13 @@ import java.util.Map;
 import tile.ast.base.Statement;
 import tile.ast.stmt.BlockStmt;
 import tile.ast.stmt.FunctionDefinition;
+import tile.ast.stmt.NativeFunctionDecl;
 import tile.ast.base.Generator;
 
 public class Program extends Generator {
     private List<Statement> statements;
     static public Map<String, FunctionDefinition> funcDefSymbols = new HashMap<>();
+    static public Map<String, NativeFunctionDecl> nativeFuncDeclSymbols = new HashMap<>();
     static public List<BlockStmt> blockStack = new ArrayList<>();
 
     public Program() {

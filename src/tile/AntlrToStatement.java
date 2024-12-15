@@ -11,6 +11,7 @@ import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.IfStmtContext;
 import gen.antlr.tile.tileParser.LoopStmtContext;
+import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
 import gen.antlr.tile.tileParser.SelectionStmtContext;
@@ -25,6 +26,7 @@ import tile.ast.stmt.ExpressionStmt;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.stmt.IfStmt;
+import tile.ast.stmt.NativeFunctionDecl;
 import tile.ast.stmt.ReturnStmt;
 import tile.ast.stmt.VariableDefinition;
 import tile.ast.stmt.WhileStmt;
@@ -294,11 +296,37 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         Statement exprStmt = visit(ctx.expressionStmt());
 
         String exprType = ((ExpressionStmt)exprStmt).getType();
+        System.out.println(exprType);
         TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
 
         VariableDefinition vd = new VariableDefinition(typeInfo, varId, exprStmt);
 
         return vd;
+    }
+
+    @Override
+    public Statement visitNativeFuncDeclStmt(NativeFuncDeclStmtContext ctx) {
+        String funcId = ctx.IDENTIFIER().getText();
+        ArrayList<FuncArg> args = new ArrayList<>();
+        TypeFuncCall return_type = new TypeFuncCall();
+        return_type.result_type = ctx.cTypeName().getText();
+        NativeFunctionDecl nfd = null;
+
+        for (int i = 0; i < ctx.cArgument().size(); i++) {
+            FuncArg arg = new FuncArg(
+                ctx.cArgument(i).cTypeName().getText(),
+                ctx.cArgument(i).IDENTIFIER().getText(),
+                false
+            );
+            args.add(arg);
+        }
+        
+        // just add decleration part, it is enough
+        nfd = new NativeFunctionDecl(funcId, args, return_type);
+        
+        Program.nativeFuncDeclSymbols.put(funcId, nfd);
+
+        return nfd;
     }
 
     
