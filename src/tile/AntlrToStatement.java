@@ -28,6 +28,7 @@ import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.stmt.IfStmt;
 import tile.ast.stmt.NativeFunctionDecl;
 import tile.ast.stmt.ReturnStmt;
+import tile.ast.stmt.VariableAssignment;
 import tile.ast.stmt.VariableDefinition;
 import tile.ast.stmt.WhileStmt;
 import tile.ast.types.TypeResolver;
@@ -138,7 +139,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         // We need to eliminate code generation for ExpressionStmtContext whose parents are NOT ReturnStmtContext.
         // this will eliminate code lines like: "5;" or "3 + 8 * 2;" to generate 'push' and 'binop(mult, add etc.)' instructions.
         boolean generate = false;
-        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext) || ctx.getParent() instanceof VariableDefinitionContext) {
+        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext) || ctx.getParent() instanceof VariableDefinitionContext || ctx.getParent() instanceof VariableAssignmentContext) {
             generate = true;
         }
         AntlrToExpression exprVisitor = new AntlrToExpression();
@@ -279,8 +280,60 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitVariableAssignment(VariableAssignmentContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitVariableAssignment(ctx);
+        String varId = ctx.IDENTIFIER().getText();
+        String assignmentOperator = ctx.assignmentOperator().getText();
+        Statement exprStmt = visit(ctx.expressionStmt());
+
+        // find the defined variable
+        BlockStmt blck = null;                
+        int counter = 0;
+        while (blck == null) {
+            int index  = (Program.blockStack.size() - 1) - counter;
+            if (index >= 0) {
+                blck = Program.blockStack.get(index);
+            } else {
+                break;
+            }
+            counter++;
+        }
+
+        int blockId = blck.getBlockId();
+        String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
+
+
+        counter = 0;
+        while (blck.variableSymbols.get(tasmVarSym) == null) {
+            int index  = (Program.blockStack.size() - 1) - counter;
+            if (index >= 0) {
+                // System.out.println("bid: " + blockId);
+                blck = Program.blockStack.get(index);
+                blockId = blck.getBlockId();
+                tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
+            } else {
+                break;
+            }
+            counter++;
+        }
+
+
+        int tasmIdx = -1;
+        String varType = "";
+
+        try {
+            tasmIdx = blck.variableSymbols.get(tasmVarSym).getTasmIdx();
+            varType = blck.variableSymbols.get(tasmVarSym).getType();
+        } catch (Exception e) {
+            int line = ctx.IDENTIFIER().getSymbol().getLine();
+            System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is not defined before assignment!");
+        }
+
+        // get the right handside type
+        String exprType = ((ExpressionStmt)exprStmt).getType();
+        TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(varType, exprType);
+
+        VariableAssignment va = new VariableAssignment(typeInfo, varId, assignmentOperator, exprStmt, tasmIdx);
+
+        return va;
     }
 
     @Override
@@ -313,9 +366,13 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         NativeFunctionDecl nfd = null;
 
         for (int i = 0; i < ctx.cArgument().size(); i++) {
+            String argId = "";
+            if (ctx.cArgument(i).IDENTIFIER() != null) {
+                ctx.cArgument(i).IDENTIFIER().getText();
+            }
             FuncArg arg = new FuncArg(
-                ctx.cArgument(i).cTypeName().getText(),
-                ctx.cArgument(i).IDENTIFIER().getText(),
+                ctx.cArgument(i).cTypeName().getText(), 
+                argId,
                 false
             );
             args.add(arg);
