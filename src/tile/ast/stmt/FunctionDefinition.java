@@ -51,7 +51,8 @@ public class FunctionDefinition implements Statement {
     public String generateTasm(String generatedCode) {
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
         generatedCode += "proc " + tasmFuncSym + "\n";
-        for (int i = 0; i < args.size(); i++) {
+        // reverse accept the params because of the stack behaivour
+        for (int i = args.size() - 1; i >= 0; i--) {
             generatedCode += "    ";
             generatedCode += "store " + (i) + " ; param " + args.get(i).type + " " + args.get(i).argId + "\n";
         }
