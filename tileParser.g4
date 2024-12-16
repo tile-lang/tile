@@ -19,8 +19,7 @@ globalStatements
     ;
 
 globalStatement
-    : expressionStmt
-    | variableStmt
+    : variableStmt
     | funcDefStmt
     | nativeFuncDeclStmt
     ;
@@ -230,7 +229,7 @@ argument
     ;
 
 cArgument
-    : cTypeName IDENTIFIER
+    : cTypeName IDENTIFIER?
     ;
 
 typeName

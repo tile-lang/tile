@@ -153,6 +153,12 @@ public class TypeResolver {
                 ti.cast_type = cast;
                 ti.result_type = cast;
             }
+        } else if (isFloatType(expr)) {
+            if (isNumericType(cast)) {
+                ti.expr_type = expr;
+                ti.cast_type = cast;
+                ti.result_type = cast;
+            }
         } else if (isBoolType(expr)) {
             if (isNumericType(cast) || isBoolType(cast)) {
                 ti.expr_type = expr;
