@@ -33,6 +33,7 @@ import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.UnaryExpression;
 import tile.ast.stmt.BlockStmt;
+import tile.ast.stmt.VariableDefinition;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoBinop;
@@ -117,12 +118,23 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                     counter++;
                 }
 
-                // System.out.println(blck.variableSymbols.get(tasmVarSym));
-                // System.out.println(tasmVarSym);
-                // System.out.println(counter);
 
                 int tasmIdx = -1;
                 String varType = "";
+
+                // if still cannot find the variable outer blocks look at the global scope
+                // if (counter >= Program.blockStack.size()) {
+                //     try {
+                //         tasmIdx = blck.variableSymbols.get(tasmVarSym).getTasmIdx();
+                //         varType = blck.variableSymbols.get(tasmVarSym).getType();
+                //      } catch (Exception e) {
+                //         String globalTasmVarSym = TasmSymbolGenerator.tasmGenGlobalVariableName(identifier);
+                //         tasmIdx = Program.globalVariableSymbols.get(globalTasmVarSym).getTasmIdx();
+                //         varType = Program.globalVariableSymbols.get(globalTasmVarSym).getType();
+                //         return new PrimaryExpression(unaryOp, identifier, varType, true, tasmIdx);
+                //      }
+                // }
+
                 try {
                     tasmIdx = blck.variableSymbols.get(tasmVarSym).getTasmIdx();
                     varType = blck.variableSymbols.get(tasmVarSym).getType();
@@ -208,6 +220,9 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         expr_type = expr.getType();
 
         TypeInfoCast type = TypeResolver.resolveCastType(expr_type, cast_type);
+        // System.out.println("debug cast : " + type.cast_type);
+        // System.out.println("debug expr : " + type.expr_type);
+        // System.out.println("debug result : " + type.result_type);
         Expression castExpr = new CastExpression(expr, type);
         return castExpr;
     }

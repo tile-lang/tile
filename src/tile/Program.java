@@ -12,13 +12,15 @@ import tile.ast.base.Statement;
 import tile.ast.stmt.BlockStmt;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.NativeFunctionDecl;
+import tile.ast.stmt.VariableDefinition;
 import tile.ast.base.Generator;
 
 public class Program extends Generator {
     private List<Statement> statements;
-    static public Map<String, FunctionDefinition> funcDefSymbols = new HashMap<>();
-    static public Map<String, NativeFunctionDecl> nativeFuncDeclSymbols = new HashMap<>();
-    static public List<BlockStmt> blockStack = new ArrayList<>();
+    public static Map<String, FunctionDefinition> funcDefSymbols = new HashMap<>();
+    public static Map<String, NativeFunctionDecl> nativeFuncDeclSymbols = new HashMap<>();
+    public static List<BlockStmt> blockStack = new ArrayList<>();
+    public static Map<String, VariableDefinition> globalVariableSymbols = new HashMap<>();
 
     public Program() {
         super();
