@@ -1,17 +1,12 @@
 package tile.ast.stmt;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import tile.ast.base.Statement;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.sym.TasmSymbolGenerator;
 
 public class FunctionDefinition implements Statement {
-
-    public static Map<String, FunctionDefinition> funcDefSymbols = new HashMap<>();
-    public Map<String, VariableDefinition> variableSymbols;
 
     public static class FuncArg {
         private String type;
@@ -49,7 +44,6 @@ public class FunctionDefinition implements Statement {
         this.args = args;
         this.return_type = return_type;
         this.block = block;
-        this.variableSymbols = new HashMap<>();
         tasmVarIdx = 0;//args.size();
     }
 
@@ -57,7 +51,8 @@ public class FunctionDefinition implements Statement {
     public String generateTasm(String generatedCode) {
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
         generatedCode += "proc " + tasmFuncSym + "\n";
-        for (int i = 0; i < args.size(); i++) {
+        // reverse accept the params because of the stack behaivour
+        for (int i = args.size() - 1; i >= 0; i--) {
             generatedCode += "    ";
             generatedCode += "store " + (i) + " ; param " + args.get(i).type + " " + args.get(i).argId + "\n";
         }
@@ -77,6 +72,14 @@ public class FunctionDefinition implements Statement {
         generatedCode += "endp\n\n";
 
         return generatedCode;
+    }
+
+    public void setBlockStmt(BlockStmt block) {
+        this.block = block;
+    }
+
+    public BlockStmt getBlockStmt() {
+        return (BlockStmt)block;
     }
 
     public String getFuncId() {

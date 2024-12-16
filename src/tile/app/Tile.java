@@ -27,10 +27,10 @@ public class Tile {
         program.generate();
 
         
-        for (Map.Entry<String, FunctionDefinition> entry : FunctionDefinition.funcDefSymbols.entrySet()) {
+        for (Map.Entry<String, FunctionDefinition> entry : Program.funcDefSymbols.entrySet()) {
             String funcKey = entry.getKey();
             String varKeys = "";
-            for (Map.Entry<String, VariableDefinition> varEntry : entry.getValue().variableSymbols.entrySet()) {
+            for (Map.Entry<String, VariableDefinition> varEntry : entry.getValue().getBlockStmt().variableSymbols.entrySet()) {
                 varKeys += varEntry.getKey() + ": " + varEntry.getValue().getTasmIdx() + ", ";
             }
 

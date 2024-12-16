@@ -2,3 +2,4 @@
 build*
 src/gen
 examples/test*
+.vscode
