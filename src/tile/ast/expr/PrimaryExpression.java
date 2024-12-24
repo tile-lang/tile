@@ -1,6 +1,7 @@
 package tile.ast.expr;
 
 import tile.ast.base.Expression;
+import tile.ast.types.TypeResolver;
 
 public class PrimaryExpression implements Expression {
 
@@ -27,8 +28,7 @@ public class PrimaryExpression implements Expression {
         return type;
     }
 
-    @Override
-    public String generateTasm(String generatedCode) {
+    private String generateTasmForNumerics(String generatedCode) {
         generatedCode += "    ";
         if (isIdentifier) {
             if (unaryOp != null) {
@@ -59,5 +59,32 @@ public class PrimaryExpression implements Expression {
         }
         return generatedCode;
     }
+
+    public String generateTasmForString(String generatedCode) {
+        // FIXME: generate indicies
+        generatedCode += "    aloadc " + "0" + "\n";
+        return generatedCode;
+    }
+
+    @Override
+    public String generateTasm(String generatedCode) {
+        System.out.println("primary type:" + type);
+        if (TypeResolver.isNumericType(type) || TypeResolver.isCharType(type)) {
+            generatedCode = generateTasmForNumerics(generatedCode);
+        } else if (TypeResolver.isStringType(type)) {
+            generatedCode = generateTasmForString(generatedCode);
+        } else {
+            generatedCode += "    load " + identifierTasmIdx + "\n";
+        }
+
+        return generatedCode;
+    }
+
+    // TODO: create a one more pass and do this part on that first pass!
+    // public String generateTasmData(String generatedCodeData) {
+    //     //TODO: preprocess the string
+    //     generatedCodeData += "@data " + value + "\n";
+    //     return generatedCodeData;
+    // }
     
 }

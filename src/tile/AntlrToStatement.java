@@ -349,7 +349,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         Statement exprStmt = visit(ctx.expressionStmt());
 
         String exprType = ((ExpressionStmt)exprStmt).getType();
-        System.out.println(exprType);
+        System.out.println("var def lhs:" + type);
+        System.out.println("var def rhs:" + exprType);
         TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
 
         VariableDefinition vd = new VariableDefinition(typeInfo, varId, exprStmt);

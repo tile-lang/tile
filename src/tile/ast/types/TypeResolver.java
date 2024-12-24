@@ -39,6 +39,11 @@ public class TypeResolver {
         public String expr_type = null;
     }
     
+    public static class TypeInfoArray {
+        public String type;
+        public int element_size;
+    }
+
     public static boolean isNumericType(String type) {
         return (isIntType(type) || isFloatType(type));
     }
@@ -61,6 +66,10 @@ public class TypeResolver {
 
     public static boolean isCharType(String type) {
         return type.equals("char");
+    }
+
+    public static boolean isStringType(String type) {
+        return type.equals("string");
     }
 
     // TODO: add boolean and har types as well
@@ -104,6 +113,54 @@ public class TypeResolver {
         }
 
         return ti;
+    }
+
+    private static int resolveArrayTypeSize(String type) {
+        switch (type) {
+            case "int":
+            case "float": return 4;
+        }
+
+        // composite type
+        // FIXME:
+        return -1;
+    }
+
+    public static TypeInfoArray resolveArrayInitializerType(String type, int dimension) {
+        TypeInfoArray typeInfo = new TypeInfoArray();
+        typeInfo.element_size = resolveArrayTypeSize(type);
+        
+        for (int i = 0; i < dimension; i++) {
+            type += "[" + "]";
+        }
+        typeInfo.type = type;
+
+        return typeInfo;
+    }
+
+    private static String getBaseType(String type) {
+        // int dim = 0;
+        String baseType = "";
+        for (int i = 0; i < type.length(); i++) {
+            // if (type.charAt(i) == '[') {
+            //     dim++;
+            // }
+            if (type.charAt(i) != '[' && type.charAt(i) != ']') {
+                baseType += type.charAt(i);
+            }
+        }
+        return baseType;
+    }
+
+    public static TypeInfoArray resolveArrayIndexAccessor(String type) {
+        TypeInfoArray typeInfo = new TypeInfoArray();
+        String baseType = getBaseType(type);
+        System.out.println("Base TYPEEEE::: " + baseType);
+        typeInfo.element_size = resolveArrayTypeSize(baseType);
+        
+        typeInfo.type = type;
+
+        return typeInfo;
     }
 
     public static TypeInfoBinopBool resolveBinopBooleanType(String lhs, String rhs) {
@@ -220,14 +277,13 @@ public class TypeResolver {
             if (var_type.equals("int") && expr_type.equals("float")) {
                 System.out.println("WARNING: autocast from type '" + vd.expr_type + "' to type '" + vd.var_type + "' may be unwanted!");
             }
-        } else if (isCharType(var_type)) {
+        } else {
             vd.auto_cast = false;
             vd.expr_type = expr_type;
             vd.var_type = var_type;
             System.out.println("ERROR: autocast is not possible from type '" + vd.expr_type + "' to type '" + vd.var_type + "'!");
-        } else if (isBoolType(var_type)) {
-
         }
+
         // IMPORTANT: vd can have null values be careful!
         return vd;
     }
