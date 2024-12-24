@@ -45,6 +45,9 @@ expressionStmt
 expression
     : primaryExpression
     | unaryExpression
+    | arrayIndexAccessor
+    | arrayValuedInitializer
+    | arraySizedInitializer
     | funcCallExpression
     | castExpression
     | multiplicativeExpression
@@ -66,6 +69,7 @@ primaryExpression
     | FLOAT_LITERAL
     | CHAR_LITERAL
     | BOOL_LITERAL
+    | STRING_LITERAL
     | IDENTIFIER
     | '(' expression ')'
     ;
@@ -83,8 +87,35 @@ unaryOperator
     | '!'
     ;
 
+arrayValuedInitializer
+    : '[' arrayValuedInitializerElements? ']'
+    ;
+
+arrayValuedInitializerElements
+    : primaryExpression (',' primaryExpression)*
+    | arrayValuedInitializer (',' arrayValuedInitializer)*
+    ;
+
+arraySizedInitializer
+    : primaryTypeName arraySizeSpecifier+
+    ;
+
+arraySizeSpecifier
+    : '[' INT_LITERAL ']'
+    ;
+
+arrayIndexAccessor
+    : IDENTIFIER arrayIndexSpecifier+
+    ;
+
+arrayIndexSpecifier
+    : '[' primaryExpression ']'
+    ;
+
 funcCallExpression
     : IDENTIFIER '(' (expression)? (',' expression)* ')'
+    | primaryExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
+    | funcCallExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
     ;
 
 castExpression
@@ -94,6 +125,8 @@ castExpression
     | unaryExpression
     | '(' typeName ')' funcCallExpression
     | funcCallExpression
+    | '(' typeName ')' arrayIndexAccessor
+    | arrayIndexAccessor
     ;
 
 multiplicativeExpression
@@ -165,11 +198,13 @@ variableStmt
     ;
 
 variableDecleration
-    : typeName IDENTIFIER ';'
+    : IDENTIFIER ':' typeName ';'
+    // : typeName IDENTIFIER ';'
     ;
 
 variableDefinition
-    : typeName IDENTIFIER '=' expressionStmt
+    : IDENTIFIER ':' typeName '=' expressionStmt
+    // : typeName IDENTIFIER '=' expressionStmt
     ;
 
 variableAssignment
@@ -225,11 +260,13 @@ blockStmt
     ;
 
 argument
-    : KW_REF? typeName IDENTIFIER
+    : IDENTIFIER ':' KW_REF? typeName
+    // : KW_REF? typeName IDENTIFIER
     ;
 
 cArgument
-    : cTypeName IDENTIFIER?
+    : (IDENTIFIER ':')? cTypeName
+    // : cTypeName IDENTIFIER?
     ;
 
 typeName
@@ -238,7 +275,7 @@ typeName
     ;
 
 primaryArrTypeName
-    : primaryTypeName '['']'
+    : primaryTypeName ('['']')+
     ;
 
 primaryTypeName
@@ -248,6 +285,7 @@ primaryTypeName
     | KW_CHAR
     | KW_FUNC
     | KW_VOID
+    | KW_STRING
     | IDENTIFIER // For custom types like structs
     ;
 
