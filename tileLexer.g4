@@ -26,6 +26,9 @@ KW_BOOL
 KW_CHAR
     : 'char'
     ;
+KW_STRING
+    : 'string'
+    ;
 KW_VOID
     : 'void'
     ;
