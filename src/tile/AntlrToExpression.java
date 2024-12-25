@@ -427,9 +427,15 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
     public Expression visitArraySizedInitializer(ArraySizedInitializerContext ctx) {
         String type = ctx.primaryTypeName().getText();
         int dim = ctx.arraySizeSpecifier().size();
-        int[] arrSizes = new int[dim];
+        List<Expression> arrSizes = new ArrayList<>();
         for (int i = 0; i < dim; i++) {
-            arrSizes[i] = Integer.parseInt(ctx.arraySizeSpecifier(i).INT_LITERAL().getText());
+            Expression expr = visit(ctx.arraySizeSpecifier(i).primaryExpression());
+            String sizeExprType = expr.getType();
+            if (!sizeExprType.equals("int")) {
+                int line = ctx.primaryTypeName().getStop().getLine();
+                System.err.println("ERROR:" + line + "Array sized initializer must be an 'int' type!");
+            }
+            arrSizes.add(expr);
         }
         TypeInfoArray typeInfo = TypeResolver.resolveArrayInitializerType(type, dim);
 
@@ -459,14 +465,15 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
         System.out.println("varType: " + varType.toString());
 
-        TypeInfoArray typeInfo = new TypeInfoArray();
-        typeInfo = TypeResolver.resolveArrayIndexAccessor(varType.toString());
-
         List<Expression> exprs = new ArrayList<>();
         for (int i = 0; i < ctx.arrayIndexSpecifier().size(); i++) {
-            Expression expr = visit(ctx.arrayIndexSpecifier(0).primaryExpression());
+            Expression expr = visit(ctx.arrayIndexSpecifier(i).primaryExpression());
             exprs.add(expr);
         }
+
+        TypeInfoArray typeInfo = new TypeInfoArray();
+        int reducedDim = exprs.size();
+        typeInfo = TypeResolver.resolveArrayIndexAccessor(varType.toString(), reducedDim);
 
         return new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
     }

@@ -101,7 +101,7 @@ arraySizedInitializer
     ;
 
 arraySizeSpecifier
-    : '[' INT_LITERAL ']'
+    : '[' primaryExpression ']'
     ;
 
 arrayIndexAccessor
