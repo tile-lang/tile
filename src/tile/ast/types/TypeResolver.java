@@ -152,14 +152,26 @@ public class TypeResolver {
         return baseType;
     }
 
-    public static TypeInfoArray resolveArrayIndexAccessor(String type) {
+    private static String reduceDim(String type, int reducedDim) {
+        StringBuilder sb = new StringBuilder(type);
+        for (int i = 0; i < reducedDim; i++) {
+            sb.deleteCharAt(sb.length() - i - 1);
+            sb.deleteCharAt(sb.length() - i - 1);
+        }
+        return sb.toString();
+    }
+
+    public static TypeInfoArray resolveArrayIndexAccessor(String type, int reducedDim) {
         TypeInfoArray typeInfo = new TypeInfoArray();
         String baseType = getBaseType(type);
-        System.out.println("Base TYPEEEE::: " + baseType);
         typeInfo.element_size = resolveArrayTypeSize(baseType);
-        
-        typeInfo.type = type;
 
+        System.out.println("Base TYPEEEE::: " + baseType);
+
+        
+        String reducedType = reduceDim(type, reducedDim);
+        
+        typeInfo.type = reducedType;
         return typeInfo;
     }
 
@@ -290,11 +302,9 @@ public class TypeResolver {
 
     public static TypeInfoVariableDef resolveVariableDefForFunctionArgs(String var_type) {
         TypeInfoVariableDef vd = new TypeInfoVariableDef();
-        if (isNumericType(var_type)) {
-            vd.auto_cast = false;
-            vd.var_type = var_type;
-            vd.result_type = var_type;
-        }
+        vd.auto_cast = false;
+        vd.var_type = var_type;
+        vd.result_type = var_type;
         // IMPORTANT: vd can have null values be careful!
         return vd;
     }
