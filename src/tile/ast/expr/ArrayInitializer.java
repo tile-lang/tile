@@ -1,14 +1,16 @@
 package tile.ast.expr;
 
+import java.util.List;
+
 import tile.ast.base.Expression;
 import tile.ast.types.TypeResolver.TypeInfoArray;
 
 public class ArrayInitializer implements Expression {
 
     private TypeInfoArray typeInfo;
-    private int[] arrSizes;
+    private List<Expression> arrSizes;
 
-    public ArrayInitializer(TypeInfoArray typeInfo, int[] arrSizes) {
+    public ArrayInitializer(TypeInfoArray typeInfo, List<Expression> arrSizes) {
         this.typeInfo = typeInfo;
         this.arrSizes = arrSizes;
     }
@@ -16,13 +18,14 @@ public class ArrayInitializer implements Expression {
     @Override
     public String generateTasm(String generatedCode) {
         int size_in_bytes = typeInfo.element_size;
-        for (int i = 0; i < arrSizes.length; i++) {
-            size_in_bytes *= arrSizes[i];
-        }
         generatedCode += "    ; sized arr initializer\n";
-        generatedCode += "    push " + size_in_bytes + "\n";
-        generatedCode += "    push 0\n";
-        generatedCode += "    halloc\n";
+        for (int i = 0; i < arrSizes.size(); i++) {
+            generatedCode = arrSizes.get(i).generateTasm(generatedCode);
+            generatedCode += "    push " + size_in_bytes + "\n";
+            generatedCode += "    mult\n";
+            generatedCode += "    push 0\n";
+            generatedCode += "    halloc\n";
+        }
 
         return generatedCode;
     }
