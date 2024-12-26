@@ -112,6 +112,10 @@ arrayIndexSpecifier
     : '[' primaryExpression ']'
     ;
 
+arrayIndexAccessorSetter
+    : IDENTIFIER arrayIndexSpecifier+
+    ;
+
 funcCallExpression
     : IDENTIFIER '(' (expression)? (',' expression)* ')'
     | primaryExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
@@ -199,16 +203,17 @@ variableStmt
 
 variableDecleration
     : IDENTIFIER ':' typeName ';'
-    // : typeName IDENTIFIER ';'
+    | typeName IDENTIFIER ';'
     ;
 
 variableDefinition
     : IDENTIFIER ':' typeName '=' expressionStmt
-    // : typeName IDENTIFIER '=' expressionStmt
+    | typeName IDENTIFIER '=' expressionStmt
     ;
 
 variableAssignment
     : IDENTIFIER assignmentOperator expressionStmt
+    | arrayIndexAccessorSetter assignmentOperator expressionStmt
     ;
 
 loopStmt
