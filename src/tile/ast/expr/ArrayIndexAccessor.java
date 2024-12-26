@@ -25,7 +25,7 @@ public class ArrayIndexAccessor implements Expression {
         generatedCode += "    push " + typeInfo.element_size + "\n";
         generatedCode += "    mult\n";
         generatedCode += "    add\n";
-        generatedCode += "    ; dereferance\n";
+        generatedCode += "    deref ; dereferance\n";
         return generatedCode;
     }
 
