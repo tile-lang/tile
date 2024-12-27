@@ -28,7 +28,7 @@ public class PrimaryExpression implements Expression {
         return type;
     }
 
-    private String generateTasmForNumerics(String generatedCode) {
+    private String generateTasmForPrimitive(String generatedCode) {
         generatedCode += "    ";
         if (isIdentifier) {
             if (unaryOp != null) {
@@ -69,8 +69,8 @@ public class PrimaryExpression implements Expression {
     @Override
     public String generateTasm(String generatedCode) {
         System.out.println("primary type:" + type);
-        if (TypeResolver.isNumericType(type) || TypeResolver.isCharType(type)) {
-            generatedCode = generateTasmForNumerics(generatedCode);
+        if (TypeResolver.isNumericType(type) || TypeResolver.isCharType(type) || TypeResolver.isBoolType(type)) {
+            generatedCode = generateTasmForPrimitive(generatedCode);
         } else if (TypeResolver.isStringType(type)) {
             generatedCode = generateTasmForString(generatedCode);
         } else {

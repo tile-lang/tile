@@ -1,6 +1,5 @@
 package tile.ast.types;
 
-import java.util.Arrays;
 
 public class TypeResolver {
     public static class TypeInfoBinop {
@@ -155,8 +154,8 @@ public class TypeResolver {
     private static String reduceDim(String type, int reducedDim) {
         StringBuilder sb = new StringBuilder(type);
         for (int i = 0; i < reducedDim; i++) {
-            sb.deleteCharAt(sb.length() - i - 1);
-            sb.deleteCharAt(sb.length() - i - 1);
+            sb.deleteCharAt(sb.length() - 1);
+            sb.deleteCharAt(sb.length() - 1);
         }
         return sb.toString();
     }
