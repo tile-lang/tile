@@ -33,6 +33,7 @@ import tile.ast.stmt.VariableDefinition;
 import tile.ast.stmt.WhileStmt;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
+import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoRetStmt;
 import tile.ast.types.TypeResolver.TypeInfoVariableDef;
 import tile.sym.TasmSymbolGenerator;
@@ -280,56 +281,45 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitVariableAssignment(VariableAssignmentContext ctx) {
-        String varId = ctx.IDENTIFIER().getText();
-        String assignmentOperator = ctx.assignmentOperator().getText();
-        Statement exprStmt = visit(ctx.expressionStmt());
-
-        // find the defined variable
-        BlockStmt blck = null;                
-        int counter = 0;
-        while (blck == null) {
-            int index  = (Program.blockStack.size() - 1) - counter;
-            if (index >= 0) {
-                blck = Program.blockStack.get(index);
-            } else {
-                break;
-            }
-            counter++;
+        String varId = "";
+        if (ctx.arrayIndexAccessorSetter() != null) {
+            varId = ctx.arrayIndexAccessorSetter().IDENTIFIER().getText();
+        } else {
+            varId = ctx.IDENTIFIER().getText();
         }
 
-        int blockId = blck.getBlockId();
-        String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
-
-
-        counter = 0;
-        while (blck.variableSymbols.get(tasmVarSym) == null) {
-            int index  = (Program.blockStack.size() - 1) - counter;
-            if (index >= 0) {
-                // System.out.println("bid: " + blockId);
-                blck = Program.blockStack.get(index);
-                blockId = blck.getBlockId();
-                tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
-            } else {
-                break;
-            }
-            counter++;
-        }
-
-
+        StringBuilder varType = new StringBuilder();
         int tasmIdx = -1;
-        String varType = "";
-
         try {
-            tasmIdx = blck.variableSymbols.get(tasmVarSym).getTasmIdx();
-            varType = blck.variableSymbols.get(tasmVarSym).getType();
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(varId, varType);
         } catch (Exception e) {
-            int line = ctx.IDENTIFIER().getSymbol().getLine();
+            int line = -1;
+            if (ctx.arrayIndexAccessorSetter() != null) {
+                line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
+            } else {
+                line = ctx.IDENTIFIER().getSymbol().getLine();
+            }
             System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is not defined before assignment!");
         }
 
+        String assignmentOperator = ctx.assignmentOperator().getText();
+        Statement exprStmt = visit(ctx.expressionStmt());
+
         // get the right handside type
         String exprType = ((ExpressionStmt)exprStmt).getType();
-        TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(varType, exprType);
+
+
+        // resolve left handside's dimension if it was an array
+        String endType = varType.toString();
+        if (ctx.arrayIndexAccessorSetter() != null) {
+            int reducedDim = ctx.arrayIndexAccessorSetter().arrayIndexSpecifier().size();
+            System.out.println("before: " + endType);
+            TypeInfoArray typeInfoArr = TypeResolver.resolveArrayIndexAccessor(endType, reducedDim);
+            endType = typeInfoArr.type;
+            System.out.println("after: " + endType);
+        }
+
+        TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(endType, exprType);
 
         VariableAssignment va = new VariableAssignment(typeInfo, varId, assignmentOperator, exprStmt, tasmIdx);
 

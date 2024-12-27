@@ -38,7 +38,6 @@ import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.UnaryExpression;
-import tile.ast.stmt.BlockStmt;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
@@ -48,58 +47,6 @@ import tile.ast.types.TypeResolver.TypeInfoCast;
 import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
-
-    private int primaryExpressionIdentifierScopeFind(final String identifier, StringBuilder varType) throws Exception {
-        BlockStmt blck = null;               
-        int counter = 0;
-        while (blck == null) {
-            int index  = (Program.blockStack.size() - 1) - counter;
-            if (index >= 0) {
-                blck = Program.blockStack.get(index);
-            } else {
-                break;
-            }
-            counter++;
-        }
-
-        int blockId = blck.getBlockId();
-        String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, identifier);
-
-        // FIXME: allow variable def outside functions!
-        // TODO: check edge cases!!!
-
-        counter = 0;
-        while (blck.variableSymbols.get(tasmVarSym) == null) {
-            int index  = (Program.blockStack.size() - 1) - counter;
-            if (index >= 0) {
-                // System.out.println("bid: " + blockId);
-                blck = Program.blockStack.get(index);
-                blockId = blck.getBlockId();
-                tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, identifier);
-            } else {
-                break;
-            }
-            counter++;
-        }
-
-
-        int tasmIdx = -1;
-        varType.setLength(0);
-
-        // TODO:
-        // if still cannot find the variable outer blocks look at the global scope
-
-        try {
-            tasmIdx = blck.variableSymbols.get(tasmVarSym).getTasmIdx();
-            varType.append(blck.variableSymbols.get(tasmVarSym).getType());
-        } catch (Exception e) {
-            throw new RuntimeException();
-            // int line = ctx.IDENTIFIER().getSymbol().getLine();
-            // System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
-        }
-
-        return tasmIdx;
-    }
 
     @Override
     public Expression visitPrimaryExpression(PrimaryExpressionContext ctx) {
@@ -128,10 +75,13 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             }
             else if (ctx.BOOL_LITERAL() != null) {
                 String boolLiteral = ctx.BOOL_LITERAL().getText();
-                if (boolLiteral.equals("true"))
+                System.out.println("DEBUG::: " + boolLiteral);
+                if (boolLiteral.equals("true")) {
                     expr = new PrimaryExpression(unaryOp, "1", "bool", false, 0);
-                else if (boolLiteral.equals("false"))
+                }
+                else if (boolLiteral.equals("false")) {
                     expr = new PrimaryExpression(unaryOp, "0", "bool", false, 0);
+                }
             }
             else if (ctx.STRING_LITERAL() != null) {
                 String strLiteral = ctx.STRING_LITERAL().getText();
@@ -143,7 +93,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 StringBuilder varType = new StringBuilder();
                 int tasmIdx = -1;
                 try {
-                    tasmIdx = primaryExpressionIdentifierScopeFind(identifier, varType);
+                    tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType);
                 } catch (Exception e) {
                     int line = ctx.IDENTIFIER().getSymbol().getLine();
                     System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
@@ -455,7 +405,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         StringBuilder varType = new StringBuilder();
         int tasmIdx = -1;
         try {
-            tasmIdx = primaryExpressionIdentifierScopeFind(identifier, varType);
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType);
         } catch (Exception e) {
             int line = ctx.IDENTIFIER().getSymbol().getLine();
             System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
