@@ -2,6 +2,9 @@ package tile;
 
 import gen.antlr.tile.tileParser.AdditiveExpressionContext;
 import gen.antlr.tile.tileParser.AndExpressionContext;
+import gen.antlr.tile.tileParser.ArrayIndexAccessorContext;
+import gen.antlr.tile.tileParser.ArraySizedInitializerContext;
+import gen.antlr.tile.tileParser.ArrayValuedInitializerContext;
 import gen.antlr.tile.tileParser.AssignmentExpressionContext;
 import gen.antlr.tile.tileParser.CastExpressionContext;
 import gen.antlr.tile.tileParser.ConditionalExpressionContext;
@@ -10,33 +13,34 @@ import gen.antlr.tile.tileParser.ExclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.ExpressionContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.FuncCallExpressionContext;
-import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.InclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.LogicalAndExpressionContext;
 import gen.antlr.tile.tileParser.LogicalOrExpressionContext;
 import gen.antlr.tile.tileParser.MultiplicativeExpressionContext;
 import gen.antlr.tile.tileParser.PrimaryExpressionContext;
-import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.RelationalExpressionContext;
 import gen.antlr.tile.tileParser.ShiftExpressionContext;
 import gen.antlr.tile.tileParser.UnaryExpressionContext;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import gen.antlr.tile.tileParserBaseVisitor;
 import tile.ast.base.Expression;
 import tile.ast.expr.AdditativeExpression;
+import tile.ast.expr.ArrayIndexAccessor;
+import tile.ast.expr.ArrayInitializer;
 import tile.ast.expr.CastExpression;
 import tile.ast.expr.FuncCallExpression;
 import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.UnaryExpression;
-import tile.ast.stmt.FunctionDefinition;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
+import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoBinop;
 import tile.ast.types.TypeResolver.TypeInfoBinopBool;
 import tile.ast.types.TypeResolver.TypeInfoCast;
@@ -71,44 +75,32 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             }
             else if (ctx.BOOL_LITERAL() != null) {
                 String boolLiteral = ctx.BOOL_LITERAL().getText();
-                if (boolLiteral.equals("true"))
+                System.out.println("DEBUG::: " + boolLiteral);
+                if (boolLiteral.equals("true")) {
                     expr = new PrimaryExpression(unaryOp, "1", "bool", false, 0);
-                else if (boolLiteral.equals("false"))
+                }
+                else if (boolLiteral.equals("false")) {
                     expr = new PrimaryExpression(unaryOp, "0", "bool", false, 0);
+                }
+            }
+            else if (ctx.STRING_LITERAL() != null) {
+                String strLiteral = ctx.STRING_LITERAL().getText();
+                System.out.println("STR_LITERAL: " + strLiteral);
+                expr = new PrimaryExpression(unaryOp, strLiteral, "string", false, 0);
             }
             else if (ctx.IDENTIFIER() != null) {
                 String identifier = ctx.IDENTIFIER().getText();
-                
-                ParserRuleContext parentFunc = ctx;
-                while (!(parentFunc instanceof FuncDefStmtContext)) {
-                    parentFunc = parentFunc.getParent();
-                    if (parentFunc instanceof ProgramContext) {
-                        parentFunc = null;
-                        break;
-                    }
-                }
-                if (parentFunc == null) {
+                StringBuilder varType = new StringBuilder();
+                int tasmIdx = -1;
+                try {
+                    tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType);
+                } catch (Exception e) {
                     int line = ctx.IDENTIFIER().getSymbol().getLine();
-                    // FIXME: allow variable def outside functions!
-                    System.err.println("ERROR:" + line + ": " + "variable definition outside a function!");
-                    return null;
-                }
-                
-                String funcId = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getText();
-                String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
-                FunctionDefinition fds = FunctionDefinition.funcDefSymbols.get(tasmFuncSym);
-
-                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, identifier);
-
-                if (!fds.variableSymbols.containsKey(tasmVarSym)) {
-                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
                     System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
                 }
 
-                int tasmIdx = fds.variableSymbols.get(tasmVarSym).getTasmIdx();
-                String varType = fds.variableSymbols.get(tasmVarSym).getType();
+                expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx);
 
-                expr = new PrimaryExpression(unaryOp, identifier, varType, true, tasmIdx);
             }
         } else if (count == 3 && ctx.getChild(0).getText().equals("(") && ctx.getChild(2).getText().equals(")")) {
             // Parentheses case: Visit the inner expression
@@ -181,10 +173,15 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             expr = visit(ctx.funcCallExpression());
         } else if (ctx.unaryExpression() != null) {
             expr = visit(ctx.unaryExpression());
+        } else if (ctx.arrayIndexAccessor() != null) {
+            expr = visit(ctx.arrayIndexAccessor());
         }
         expr_type = expr.getType();
 
         TypeInfoCast type = TypeResolver.resolveCastType(expr_type, cast_type);
+        // System.out.println("debug cast : " + type.cast_type);
+        // System.out.println("debug expr : " + type.expr_type);
+        // System.out.println("debug result : " + type.result_type);
         Expression castExpr = new CastExpression(expr, type);
         return castExpr;
     }
@@ -226,27 +223,59 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         TypeFuncCall type = new TypeFuncCall();
         int line = ctx.IDENTIFIER().getSymbol().getLine();
 
+        boolean is_native = false;
+
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
-
+        //FIXME:
         try {
-            type.result_type = FunctionDefinition.funcDefSymbols.get(tasmFuncSym).getReturnType();
-        } catch (NullPointerException e) {
-            System.err.println("ERROR:" + line + ": function " + funcId + " is not defined before called.");
+            type.result_type = Program.funcDefSymbols.get(tasmFuncSym).getReturnType();
+        } catch (NullPointerException ne) {
+            
+            try {
+                type.result_type = Program.nativeFuncDeclSymbols.get(funcId).getReturnType();
+                is_native = true;
+            } catch (Exception e) {
+                System.err.println("ERROR:" + line + ": function " + funcId + " is not defined before called.");
+            }
         }
 
-        int arg_size = FunctionDefinition.funcDefSymbols.get(tasmFuncSym).getArgs().size();
-
-        if (arg_size != ctx.expression().size()) {
-            System.err.println("ERROR:" + line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " +ctx.expression().size());
-            return null;
+        int arg_size = -1;
+        if (is_native == false) {
+            arg_size = Program.funcDefSymbols.get(tasmFuncSym).getArgs().size();
+        } else {
+            arg_size = Program.nativeFuncDeclSymbols.get(funcId).getArgs().size();
         }
 
-        for (int i = 0; i < ctx.expression().size(); i++) {
-            Expression expr = visit(ctx.expression(i));
-            arg_exprs.add(expr);
+        // TODO: check nativeness
+        if (ctx.primaryExpression() == null && ctx.funcCallExpression() == null) {
+            if (arg_size != ctx.expression().size()) {
+                System.err.println("ERROR:" + line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " +ctx.expression().size());
+                return null;
+            }
+    
+            for (int i = 0; i < ctx.expression().size(); i++) {
+                Expression expr = visit(ctx.expression(i));
+                arg_exprs.add(expr);
+            }
+        } else {
+            if (arg_size != ctx.expression().size() + 1) {
+                System.err.println("ERROR:" + line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " + (ctx.expression().size() + 1));
+                return null;
+            }
+            if (ctx.primaryExpression() != null) {
+                Expression prim_expr = visit(ctx.primaryExpression());
+                arg_exprs.add(prim_expr);
+            } else if (ctx.funcCallExpression() != null) {
+                Expression funccall_expr = visit(ctx.funcCallExpression());
+                arg_exprs.add(funccall_expr);
+            }
+            for (int i = 0; i < ctx.expression().size(); i++) {
+                Expression expr = visit(ctx.expression(i));
+                arg_exprs.add(expr);
+            }
         }
 
-        FuncCallExpression fce = new FuncCallExpression(funcId, arg_exprs, type, false);
+        FuncCallExpression fce = new FuncCallExpression(funcId, arg_exprs, type, is_native);
 
         return fce;
     }
@@ -342,6 +371,61 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         // TODO: handle IDENTIFIER and ++ | -- operators !!!
 
         return expr;
+    }
+
+    @Override
+    public Expression visitArraySizedInitializer(ArraySizedInitializerContext ctx) {
+        String type = ctx.primaryTypeName().getText();
+        int dim = ctx.arraySizeSpecifier().size();
+        List<Expression> arrSizes = new ArrayList<>();
+        for (int i = 0; i < dim; i++) {
+            Expression expr = visit(ctx.arraySizeSpecifier(i).primaryExpression());
+            String sizeExprType = expr.getType();
+            if (!sizeExprType.equals("int")) {
+                int line = ctx.primaryTypeName().getStop().getLine();
+                System.err.println("ERROR:" + line + "Array sized initializer must be an 'int' type!");
+            }
+            arrSizes.add(expr);
+        }
+        TypeInfoArray typeInfo = TypeResolver.resolveArrayInitializerType(type, dim);
+
+        ArrayInitializer ai = new ArrayInitializer(typeInfo, arrSizes);
+        return ai;
+    }
+
+    @Override
+    public Expression visitArrayValuedInitializer(ArrayValuedInitializerContext ctx) {
+        // TODO Auto-generated method stub
+        return super.visitArrayValuedInitializer(ctx);
+    }
+
+    @Override
+    public Expression visitArrayIndexAccessor(ArrayIndexAccessorContext ctx) {
+        String identifier = ctx.IDENTIFIER().getText();
+        StringBuilder varType = new StringBuilder();
+        int tasmIdx = -1;
+        try {
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType);
+        } catch (Exception e) {
+            int line = ctx.IDENTIFIER().getSymbol().getLine();
+            System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
+        }
+
+        ctx.arrayIndexSpecifier().size();
+
+        System.out.println("varType: " + varType.toString());
+
+        List<Expression> exprs = new ArrayList<>();
+        for (int i = 0; i < ctx.arrayIndexSpecifier().size(); i++) {
+            Expression expr = visit(ctx.arrayIndexSpecifier(i).primaryExpression());
+            exprs.add(expr);
+        }
+
+        TypeInfoArray typeInfo = new TypeInfoArray();
+        int reducedDim = exprs.size();
+        typeInfo = TypeResolver.resolveArrayIndexAccessor(varType.toString(), reducedDim);
+
+        return new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
     }
 
     

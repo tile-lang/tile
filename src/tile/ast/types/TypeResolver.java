@@ -1,6 +1,5 @@
 package tile.ast.types;
 
-import java.util.Arrays;
 
 public class TypeResolver {
     public static class TypeInfoBinop {
@@ -38,11 +37,22 @@ public class TypeResolver {
         public boolean auto_cast = false;
         public String expr_type = null;
     }
-
-    public static String[] NumericTypes = {"int", "float"};
     
+    public static class TypeInfoArray {
+        public String type;
+        public int element_size;
+    }
+
     public static boolean isNumericType(String type) {
-        return Arrays.asList(NumericTypes).contains(type);
+        return (isIntType(type) || isFloatType(type));
+    }
+
+    public static boolean isIntType(String type) {
+        return type.equals("int");
+    }
+    
+    public static boolean isFloatType(String type) {
+        return type.equals("float");
     }
     
     public static boolean isVoidType(String type) {
@@ -51,6 +61,34 @@ public class TypeResolver {
 
     public static boolean isBoolType(String type) {
         return type.equals("bool");
+    }
+
+    public static boolean isCharType(String type) {
+        return type.equals("char");
+    }
+
+    public static boolean isStringType(String type) {
+        return type.equals("string");
+    }
+
+    // TODO: add boolean and har types as well
+    public static String CTypeConvert(String cType) {
+        String type = cType;
+        switch (cType) {
+            case "ci8":
+            case "ci16":
+            case "ci32":
+            case "ci64":
+            case "cu8":
+            case "cu16":
+            case "cu32":
+            case "cu64": type = "int"; break;
+            case "cf32":
+            case "cf64": type = "float"; break;
+            case "cvoid": type = "void"; break;
+        }
+
+        return type;
     }
 
     public static TypeInfoBinop resolveBinopNumericType(String lhs, String rhs) {
@@ -76,9 +114,71 @@ public class TypeResolver {
         return ti;
     }
 
+    private static int resolveArrayTypeSize(String type) {
+        switch (type) {
+            case "int":
+            case "float": return 4;
+        }
+
+        // composite type
+        // FIXME:
+        return -1;
+    }
+
+    public static TypeInfoArray resolveArrayInitializerType(String type, int dimension) {
+        TypeInfoArray typeInfo = new TypeInfoArray();
+        typeInfo.element_size = resolveArrayTypeSize(type);
+        
+        for (int i = 0; i < dimension; i++) {
+            type += "[" + "]";
+        }
+        typeInfo.type = type;
+
+        return typeInfo;
+    }
+
+    private static String getBaseType(String type) {
+        // int dim = 0;
+        String baseType = "";
+        for (int i = 0; i < type.length(); i++) {
+            // if (type.charAt(i) == '[') {
+            //     dim++;
+            // }
+            if (type.charAt(i) != '[' && type.charAt(i) != ']') {
+                baseType += type.charAt(i);
+            }
+        }
+        return baseType;
+    }
+
+    private static String reduceDim(String type, int reducedDim) {
+        StringBuilder sb = new StringBuilder(type);
+        for (int i = 0; i < reducedDim; i++) {
+            sb.deleteCharAt(sb.length() - 1);
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+    public static TypeInfoArray resolveArrayIndexAccessor(String type, int reducedDim) {
+        TypeInfoArray typeInfo = new TypeInfoArray();
+        String baseType = getBaseType(type);
+        typeInfo.element_size = resolveArrayTypeSize(baseType);
+
+        System.out.println("Base TYPEEEE::: " + baseType);
+
+        
+        String reducedType = reduceDim(type, reducedDim);
+        
+        typeInfo.type = reducedType;
+        return typeInfo;
+    }
+
     public static TypeInfoBinopBool resolveBinopBooleanType(String lhs, String rhs) {
         // TODO: add auto cast feature
         TypeInfoBinop ti = new TypeInfoBinop();
+        System.out.println("lhs:" + lhs);
+        System.out.println("rhs:" + rhs);
         if (lhs.equals("float") || rhs.equals("float")) {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
@@ -107,14 +207,34 @@ public class TypeResolver {
 
     public static TypeInfoCast resolveCastType(String expr, String cast) {
         TypeInfoCast ti = new TypeInfoCast();
-        if (isNumericType(expr)) {
-            if (isNumericType(cast) || isBoolType(cast)) {
+
+        if (cast.equals(expr)) {
+            ti.expr_type = expr;
+            ti.cast_type = cast;
+            ti.result_type = cast;
+            return ti;
+        }
+
+        if (isIntType(expr)) {
+            if (isNumericType(cast) || isBoolType(cast) || isCharType(cast)) {
+                ti.expr_type = expr;
+                ti.cast_type = cast;
+                ti.result_type = cast;
+            }
+        } else if (isFloatType(expr)) {
+            if (isNumericType(cast)) {
                 ti.expr_type = expr;
                 ti.cast_type = cast;
                 ti.result_type = cast;
             }
         } else if (isBoolType(expr)) {
             if (isNumericType(cast) || isBoolType(cast)) {
+                ti.expr_type = expr;
+                ti.cast_type = cast;
+                ti.result_type = cast;
+            }
+        } else if (isCharType(expr)) {
+            if (isIntType(cast) || isBoolType(cast)) {
                 ti.expr_type = expr;
                 ti.cast_type = cast;
                 ti.result_type = cast;
@@ -140,6 +260,8 @@ public class TypeResolver {
             tr.ret_type = ret;
             if (isVoidType(expr) && isVoidType(ret)) {
                 tr.result_type = ret;
+            } else if (expr.equals(ret)) {
+                tr.result_type = ret;
             } else {
                 System.err.println("ERROR: expression type '" + tr.expr_type + "' does not match with function return type '" + tr.ret_type + "' causing error!");
             }
@@ -150,6 +272,14 @@ public class TypeResolver {
 
     public static TypeInfoVariableDef resolveVariableDefType(String var_type, String expr_type) {
         TypeInfoVariableDef vd = new TypeInfoVariableDef();
+        if (var_type.equals(expr_type)) {
+            vd.auto_cast = false;
+            vd.expr_type = expr_type;
+            vd.var_type = var_type;
+            vd.result_type = var_type;
+            return vd;
+        }
+
         if (isNumericType(var_type) && isNumericType(expr_type)) {
             vd.auto_cast = true;
             vd.expr_type = expr_type;
@@ -158,18 +288,22 @@ public class TypeResolver {
             if (var_type.equals("int") && expr_type.equals("float")) {
                 System.out.println("WARNING: autocast from type '" + vd.expr_type + "' to type '" + vd.var_type + "' may be unwanted!");
             }
+        } else {
+            vd.auto_cast = false;
+            vd.expr_type = expr_type;
+            vd.var_type = var_type;
+            System.out.println("ERROR: autocast is not possible from type '" + vd.expr_type + "' to type '" + vd.var_type + "'!");
         }
+
         // IMPORTANT: vd can have null values be careful!
         return vd;
     }
 
     public static TypeInfoVariableDef resolveVariableDefForFunctionArgs(String var_type) {
         TypeInfoVariableDef vd = new TypeInfoVariableDef();
-        if (isNumericType(var_type)) {
-            vd.auto_cast = false;
-            vd.var_type = var_type;
-            vd.result_type = var_type;
-        }
+        vd.auto_cast = false;
+        vd.var_type = var_type;
+        vd.result_type = var_type;
         // IMPORTANT: vd can have null values be careful!
         return vd;
     }

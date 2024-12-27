@@ -11,6 +11,7 @@ import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.IfStmtContext;
 import gen.antlr.tile.tileParser.LoopStmtContext;
+import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
 import gen.antlr.tile.tileParser.SelectionStmtContext;
@@ -25,11 +26,14 @@ import tile.ast.stmt.ExpressionStmt;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.stmt.IfStmt;
+import tile.ast.stmt.NativeFunctionDecl;
 import tile.ast.stmt.ReturnStmt;
+import tile.ast.stmt.VariableAssignment;
 import tile.ast.stmt.VariableDefinition;
-import tile.ast.stmt.BlockStmt.BlockType;
+import tile.ast.stmt.WhileStmt;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
+import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoRetStmt;
 import tile.ast.types.TypeResolver.TypeInfoVariableDef;
 import tile.sym.TasmSymbolGenerator;
@@ -38,27 +42,96 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitBlockStmt(BlockStmtContext ctx) {
-        BlockType blockType = BlockType.Regular;
+        BlockStmt blockStmt = null;
 
-        if (ctx.getParent() instanceof IfStmtContext) {
-            blockType = BlockType.IfBlock;
-        } else if (ctx.getParent() instanceof FuncDefStmtContext) {
-            blockType = BlockType.FuncDefBlock;
-        } else if (ctx.getParent() instanceof WhileStmtContext) {
-            blockType = BlockType.WhileLoopBlock;
-        } else if (ctx.getParent() instanceof ForStmtContext) {
-            blockType = BlockType.ForLoopBlock;
+        ParserRuleContext parent = ctx.getParent();
+        if (parent instanceof IfStmtContext) {
+            blockStmt = new BlockStmt(BlockStmt.BlockType.IfBlock);
+        } else if (parent instanceof FuncDefStmtContext) {
+            blockStmt = new BlockStmt(BlockStmt.BlockType.FuncDefBlock);
+        } else if (parent instanceof WhileStmtContext) {
+            blockStmt = new BlockStmt(BlockStmt.BlockType.WhileLoopBlock);
+        } else if (parent instanceof ForStmtContext) {
+            blockStmt = new BlockStmt(BlockStmt.BlockType.ForLoopBlock);
+        } else {
+            blockStmt = new BlockStmt(BlockStmt.BlockType.Regular);
         }
 
-        Statement blockStmt = new BlockStmt(blockType);
+        FunctionDefinition func = null;
+        int variableTasmId = 0;
+        ParserRuleContext parentFunc = ctx.getParent();
+        while (!(parentFunc instanceof FuncDefStmtContext)) {
+            parentFunc = parentFunc.getParent();
+            if (parentFunc instanceof ProgramContext) {
+                parentFunc = null;
+                break;
+            }
+        }
+        if (parentFunc == null) {
+            // FIXME: allow variable def outside functions!
+            System.err.println("FIXME Error:::: Program!");
+        }
+
+        String funcId = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getText();
+        String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
+        func = Program.funcDefSymbols.get(tasmFuncSym);
+        
+        Program.blockStack.add(blockStmt);
+        if (parent instanceof FuncDefStmtContext) {
+            func.setBlockStmt(((BlockStmt)blockStmt));
+            // add the parameter variables to block's variableSymbols table
+            for (int i = 0; i < func.getArgs().size(); i++) {
+                String varId = func.getArgs().get(i).getArgId();
+                String varType = func.getArgs().get(i).getType();
+
+                TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefForFunctionArgs(varType);
+                VariableDefinition vd = new VariableDefinition(typeInfo, varId, null);
+                
+                variableTasmId = func.getTasmVarIdx();
+                
+                vd.setTasmIdx(variableTasmId);
+                int blockId = blockStmt.getBlockId();
+                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
+                
+                if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
+                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                }
+                blockStmt.variableSymbols.put(tasmVarSym, vd);
+            }
+        }
+
+
+        
         if (ctx.localStatements() == null) {
+            Program.blockStack.remove(Program.blockStack.size() - 1);
             return blockStmt;
         }
         
+        
         for (int i = 0; i < ctx.localStatements().localStatement().size(); i++) {
             Statement stmt = visit(ctx.localStatements().localStatement(i));
-            ((BlockStmt)blockStmt).addStatement(stmt);
+            if (stmt instanceof VariableDefinition) {
+                variableTasmId = func.getTasmVarIdx();
+                ((VariableDefinition)stmt).setTasmIdx(variableTasmId);
+
+                String varId = ((VariableDefinition)stmt).getVarId();
+                int blockId = blockStmt.getBlockId();
+                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
+
+                if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
+                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                }
+
+                blockStmt.variableSymbols.put(tasmVarSym, ((VariableDefinition)stmt));
+            }
+            // if (stmt instanceof BlockStmt) {
+            //     blockStmt.childBlocks.add((BlockStmt)stmt);
+            // }
+            blockStmt.addStatement(stmt);
         }
+        Program.blockStack.remove(Program.blockStack.size() - 1);
         return blockStmt;
     }
 
@@ -67,7 +140,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         // We need to eliminate code generation for ExpressionStmtContext whose parents are NOT ReturnStmtContext.
         // this will eliminate code lines like: "5;" or "3 + 8 * 2;" to generate 'push' and 'binop(mult, add etc.)' instructions.
         boolean generate = false;
-        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext) || ctx.getParent() instanceof VariableDefinitionContext) {
+        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext) || ctx.getParent() instanceof VariableDefinitionContext || ctx.getParent() instanceof VariableAssignmentContext) {
             generate = true;
         }
         AntlrToExpression exprVisitor = new AntlrToExpression();
@@ -110,32 +183,12 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         
         // just add decleration part, it is enough
         fds = new FunctionDefinition(funcId, args, return_type, null);
-
-
-        // add the parameter variables to function's variableSymbols table
-        for (int i = 0; i < args.size(); i++) {
-            String varId = args.get(i).getArgId();
-            String varType = args.get(i).getType();
-            TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefForFunctionArgs(varType);
-
-            VariableDefinition vd = new VariableDefinition(typeInfo, varId, fds);
-            String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, varId);
-            vd.setTasmIdx(fds.getTasmVarIdx());
-            fds.variableSymbols.put(tasmVarSym, vd);
-        }
-
-
-        // add to the hash table to see if it is defined when call the function
         String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
-        FunctionDefinition.funcDefSymbols.put(tasmFuncSym, fds);
+        Program.funcDefSymbols.put(tasmFuncSym, fds);
 
-        BlockStmt block = null;
-        block = (BlockStmt)visit(ctx.getChild(ctx.getChildCount() - 1));
-
-        fds = new FunctionDefinition(funcId, args, return_type, block);
-        // set that functionDef with same functionDef but with it has the blockStmt version
-        // ^^^^^^^^^^^^ this makes variableSymbols of each function empty again!!!
-        // FunctionDefinition.funcDefSymbols.put(tasmFuncSym, fds);
+        // visit block statement
+        // it will set itself to function
+        visit(ctx.getChild(ctx.getChildCount() - 1));
 
         return fds;
     }
@@ -210,14 +263,67 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitWhileStmt(WhileStmtContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitWhileStmt(ctx);
+        AntlrToExpression exprVisitor = new AntlrToExpression();
+        Expression expr = exprVisitor.visit(ctx.expression());
+        Statement stmt = null;
+
+        if (!(expr.getType().equals("bool"))) {
+            int line = ctx.KW_WHILE().getSymbol().getLine();
+            System.err.println("WARNING:" + line + ": while condition expression type should be a bool type!");
+        }
+
+        stmt = visit(ctx.blockStmt());
+
+        Statement whileStmt = new WhileStmt(expr, stmt);
+
+        return whileStmt;
     }
 
     @Override
     public Statement visitVariableAssignment(VariableAssignmentContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitVariableAssignment(ctx);
+        String varId = "";
+        if (ctx.arrayIndexAccessorSetter() != null) {
+            varId = ctx.arrayIndexAccessorSetter().IDENTIFIER().getText();
+        } else {
+            varId = ctx.IDENTIFIER().getText();
+        }
+
+        StringBuilder varType = new StringBuilder();
+        int tasmIdx = -1;
+        try {
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(varId, varType);
+        } catch (Exception e) {
+            int line = -1;
+            if (ctx.arrayIndexAccessorSetter() != null) {
+                line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
+            } else {
+                line = ctx.IDENTIFIER().getSymbol().getLine();
+            }
+            System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is not defined before assignment!");
+        }
+
+        String assignmentOperator = ctx.assignmentOperator().getText();
+        Statement exprStmt = visit(ctx.expressionStmt());
+
+        // get the right handside type
+        String exprType = ((ExpressionStmt)exprStmt).getType();
+
+
+        // resolve left handside's dimension if it was an array
+        String endType = varType.toString();
+        if (ctx.arrayIndexAccessorSetter() != null) {
+            int reducedDim = ctx.arrayIndexAccessorSetter().arrayIndexSpecifier().size();
+            System.out.println("before: " + endType);
+            TypeInfoArray typeInfoArr = TypeResolver.resolveArrayIndexAccessor(endType, reducedDim);
+            endType = typeInfoArr.type;
+            System.out.println("after: " + endType);
+        }
+
+        TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(endType, exprType);
+
+        VariableAssignment va = new VariableAssignment(typeInfo, varId, assignmentOperator, exprStmt, tasmIdx);
+
+        return va;
     }
 
     @Override
@@ -232,39 +338,43 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         String varId = ctx.IDENTIFIER().getText();
         Statement exprStmt = visit(ctx.expressionStmt());
 
-        // find the funcId
-        ParserRuleContext parent = ctx;
-        while (!(parent instanceof FuncDefStmtContext)) {
-            parent = parent.getParent();
-            if (parent instanceof ProgramContext) {
-                parent = null;
-                break;
-            }
-        }
-        String funcId = "";
-        if (parent != null) {
-            funcId = ((FuncDefStmtContext)parent).IDENTIFIER().getText();
-        } else {
-            // FIXME: allow user to create global variables...
-            System.out.println("ERROR: visitVariableDecleration parent is null!");
-        }
-
-
-        // find the function
-        String tasmFuncSym = TasmSymbolGenerator.tasmGenFunctionName(funcId);
-        FunctionDefinition fd = FunctionDefinition.funcDefSymbols.get(tasmFuncSym);
-
         String exprType = ((ExpressionStmt)exprStmt).getType();
+        System.out.println("var def lhs:" + type);
+        System.out.println("var def rhs:" + exprType);
         TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
 
         VariableDefinition vd = new VariableDefinition(typeInfo, varId, exprStmt);
-        vd.setTasmIdx(fd.getTasmVarIdx());
-        
-        // put the variable to function's hashtable
-        String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(funcId, varId);
-        fd.variableSymbols.put(tasmVarSym, vd);
 
         return vd;
+    }
+
+    @Override
+    public Statement visitNativeFuncDeclStmt(NativeFuncDeclStmtContext ctx) {
+        String funcId = ctx.IDENTIFIER().getText();
+        ArrayList<FuncArg> args = new ArrayList<>();
+        TypeFuncCall return_type = new TypeFuncCall();
+        return_type.result_type = ctx.cTypeName().getText();
+        NativeFunctionDecl nfd = null;
+
+        for (int i = 0; i < ctx.cArgument().size(); i++) {
+            String argId = "";
+            if (ctx.cArgument(i).IDENTIFIER() != null) {
+                ctx.cArgument(i).IDENTIFIER().getText();
+            }
+            FuncArg arg = new FuncArg(
+                ctx.cArgument(i).cTypeName().getText(), 
+                argId,
+                false
+            );
+            args.add(arg);
+        }
+        
+        // just add decleration part, it is enough
+        nfd = new NativeFunctionDecl(funcId, args, return_type);
+        
+        Program.nativeFuncDeclSymbols.put(funcId, nfd);
+
+        return nfd;
     }
 
     
