@@ -25,6 +25,7 @@ public class BlockStmt implements Statement {
     public static int scopeId = 0;
     public static int generalBlockId = 0; // it is for defining vars!
     public static int ifStmtId = 0;
+    public static int whileStmtId = 0;
 
     public BlockStmt(BlockType blockType) {
         this.blockType = blockType;
@@ -54,6 +55,8 @@ public class BlockStmt implements Statement {
         scopeId--;
         if (this.blockType == BlockType.IfBlock) {
             ifStmtId++;
+        } else if (this.blockType == BlockType.WhileLoopBlock) {
+            whileStmtId++;
         }
         return generatedCode;
     }

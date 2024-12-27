@@ -36,16 +36,18 @@ public class WhileStmt implements Statement {
 
     @Override
     public String generateTasm(String generatedCode) {
+        int whileId = BlockStmt.whileStmtId;
+
         generatedCode = condition.generateTasm(generatedCode);
-        generatedCode += "jz " + "_while_end" + "\n";
-        generatedCode += "_while:\n";
+        generatedCode += "jz " + "_" + BlockStmt.scopeId + "while_end" + whileId + "\n";
+        generatedCode += "_" + BlockStmt.scopeId + "while" + whileId + ":\n";
 
         generatedCode = block.generateTasm(generatedCode);
 
         generatedCode = condition.generateTasm(generatedCode);
-        generatedCode += "jnz " + "_while" + "\n";
+        generatedCode += "jnz " + "_" + BlockStmt.scopeId + "while" + whileId + "\n";
 
-        generatedCode += "_while_end:\n";
+        generatedCode += "_" + BlockStmt.scopeId + "while_end" + whileId + ":\n";
 
         return generatedCode;
     }
