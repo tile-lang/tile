@@ -145,16 +145,8 @@ shiftExpression
     : additiveExpression (('<<' | '>>') additiveExpression)*
     ;
 
-relationalExpression
-    : shiftExpression (('<' | '>' | '<=' | '>=') shiftExpression)*
-    ;
-
-equalityExpression
-    : relationalExpression (('==' | '!=') relationalExpression)*
-    ;
-
 andExpression
-    : equalityExpression ('&' equalityExpression)*
+    : shiftExpression ('&' shiftExpression)*
     ;
 
 exclusiveOrExpression
@@ -165,8 +157,16 @@ inclusiveOrExpression
     : exclusiveOrExpression ('|' exclusiveOrExpression)*
     ;
 
+relationalExpression
+    : inclusiveOrExpression (('<' | '>' | '<=' | '>=') inclusiveOrExpression)*
+    ;
+
+equalityExpression
+    : relationalExpression (('==' | '!=') relationalExpression)*
+    ;
+
 logicalAndExpression
-    : inclusiveOrExpression ('&&' inclusiveOrExpression)*
+    : equalityExpression ('&&' equalityExpression)*
     ;
 
 logicalOrExpression

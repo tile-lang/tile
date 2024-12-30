@@ -3,13 +3,12 @@ package tile.ast.expr;
 import tile.ast.base.Expression;
 import tile.ast.types.TypeResolver.TypeInfoBinopBool;
 
-public class RelationalExpression implements Expression {
-
+public class EqualityExpression implements Expression {
     Expression left, right;
     private TypeInfoBinopBool typeInfo; // type of the result;
     private String operator;
 
-    public RelationalExpression(Expression left, String operator, Expression right, TypeInfoBinopBool typeInfo) {
+    public EqualityExpression(Expression left, String operator, Expression right, TypeInfoBinopBool typeInfo) {
         this.left = left;
         this.right = right;
         this.operator = operator;
@@ -33,36 +32,21 @@ public class RelationalExpression implements Expression {
             generatedCode += "    ci2f\n";
         }
 
-        generatedCode += "    ";
-        if (operator.equals("<")) {
+        if (operator.equals("==")) {
             if (typeInfo.type.result_type.equals("float")) {
-                generatedCode += "ltf\n";
+                generatedCode += "    eqf\n";
             } else if (typeInfo.type.result_type.equals("int")) {
-                generatedCode += "lt\n";
+                generatedCode += "    eq\n";
             } else {
                 System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
             }
-        } else if (operator.equals(">")) {
+        } else if (operator.equals("!=")) {
             if (typeInfo.type.result_type.equals("float")) {
-                generatedCode += "gtf\n";
+                generatedCode += "    eqf\n";
+                generatedCode += "    not\n";
             } else if (typeInfo.type.result_type.equals("int")) {
-                generatedCode += "gt\n";
-            } else {
-                System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
-            }
-        } else if (operator.equals("<=")) {
-            if (typeInfo.type.result_type.equals("float")) {
-                generatedCode += "lef\n";
-            } else if (typeInfo.type.result_type.equals("int")) {
-                generatedCode += "le\n";
-            } else {
-                System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
-            }
-        } else if (operator.equals(">=")) {
-            if (typeInfo.type.result_type.equals("float")) {
-                generatedCode += "gef\n";
-            } else if (typeInfo.type.result_type.equals("int")) {
-                generatedCode += "ge\n";
+                generatedCode += "    eq\n";
+                generatedCode += "    not\n";
             } else {
                 System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
             }
@@ -70,5 +54,4 @@ public class RelationalExpression implements Expression {
 
         return generatedCode;
     }
-    
 }

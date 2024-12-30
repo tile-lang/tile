@@ -33,6 +33,7 @@ import tile.ast.expr.AdditativeExpression;
 import tile.ast.expr.ArrayIndexAccessor;
 import tile.ast.expr.ArrayInitializer;
 import tile.ast.expr.CastExpression;
+import tile.ast.expr.EqualityExpression;
 import tile.ast.expr.FuncCallExpression;
 import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
@@ -162,6 +163,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 return visit(ctx.funcCallExpression());
             } else if (ctx.unaryExpression() != null) {
                 return visit(ctx.unaryExpression());
+            } else if (ctx.arrayIndexAccessor() != null) {
+                return visit(ctx.arrayIndexAccessor());
             }
         }
         String cast_type = ctx.typeName().getText();
@@ -194,8 +197,26 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitEqualityExpression(EqualityExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitEqualityExpression(ctx);
+        // If there's no operator, directly visit the single child (relationalExpression).
+        if (ctx.relationalExpression().size() == 1) {
+            return visit(ctx.relationalExpression(0));
+        }
+
+        // Otherwise, process the operator and operands.
+        Expression left = visit(ctx.relationalExpression(0)); // The first operand.
+        for (int i = 1; i < ctx.relationalExpression().size(); i++) {
+            // Get the operator (+ or -).
+            String operator = ctx.getChild((i * 2) - 1).getText(); // Operators are at odd indices.
+
+            // Visit the right operand.
+            Expression right = visit(ctx.relationalExpression(i));
+
+            String lhs_type = left.getType();
+            String rhs_type = right.getType();;
+            TypeInfoBinopBool type = TypeResolver.resolveBinopBooleanType(lhs_type, rhs_type);
+            left = new EqualityExpression(left, operator, right, type);
+        }
+        return left;
     }
 
     @Override
@@ -325,18 +346,18 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
     @Override
     public Expression visitRelationalExpression(RelationalExpressionContext ctx) {
         // If there's no operator, directly visit the single child (castExpression).
-        if (ctx.shiftExpression().size() == 1) {
-            return visit(ctx.shiftExpression(0));
+        if (ctx.inclusiveOrExpression().size() == 1) {
+            return visit(ctx.inclusiveOrExpression(0));
         }
 
         // Otherwise, process the operator and operands.
-        Expression left = visit(ctx.shiftExpression(0)); // The first operand.
-        for (int i = 1; i < ctx.shiftExpression().size(); i++) {
+        Expression left = visit(ctx.inclusiveOrExpression(0)); // The first operand.
+        for (int i = 1; i < ctx.inclusiveOrExpression().size(); i++) {
             // Get the operator (* or /).
             String operator = ctx.getChild((i * 2) - 1).getText(); // Operators are at odd indices.
 
             // Visit the right operand.
-            Expression right = visit(ctx.shiftExpression(i));
+            Expression right = visit(ctx.inclusiveOrExpression(i));
 
             String lhs_type = left.getType();
             String rhs_type = right.getType();
@@ -418,6 +439,10 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         List<Expression> exprs = new ArrayList<>();
         for (int i = 0; i < ctx.arrayIndexSpecifier().size(); i++) {
             Expression expr = visit(ctx.arrayIndexSpecifier(i).primaryExpression());
+            if (!TypeResolver.isIntType(expr.getType())) {
+                int line = ctx.IDENTIFIER().getSymbol().getLine();
+                System.err.println("ERROR:" + line + ": Array index specifier must be 'int' type!");
+            }
             exprs.add(expr);
         }
 
