@@ -1,6 +1,7 @@
 package tile;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
@@ -310,18 +311,27 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
 
         // resolve left handside's dimension if it was an array
-        String endType = varType.toString();
+        String varTypeStr = varType.toString();
+        List<Expression> exprs = null;
+        TypeInfoVariableDef typeInfo = null;
         if (ctx.arrayIndexAccessorSetter() != null) {
-            int reducedDim = ctx.arrayIndexAccessorSetter().arrayIndexSpecifier().size();
-            System.out.println("before: " + endType);
-            TypeInfoArray typeInfoArr = TypeResolver.resolveArrayIndexAccessor(endType, reducedDim);
-            endType = typeInfoArr.type;
-            System.out.println("after: " + endType);
+            int dim = ctx.arrayIndexAccessorSetter().arrayIndexSpecifier().size();
+            exprs = new ArrayList<>();
+            AntlrToExpression exprVisitor = new AntlrToExpression();
+            for (int i = 0; i < dim; i++) {
+                Expression expr = exprVisitor.visit(ctx.arrayIndexAccessorSetter().arrayIndexSpecifier(i).primaryExpression());
+                if (!TypeResolver.isIntType(expr.getType())) {
+                    int line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
+                    System.err.println("ERROR:" + line + ": Array index specifier setter must be 'int' type!");
+                }
+                exprs.add(expr);
+            }
+            typeInfo = TypeResolver.resolveVariableDefArrayType(varTypeStr, exprType, dim);
+        } else {
+            typeInfo = TypeResolver.resolveVariableDefType(varTypeStr, exprType);
         }
 
-        TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(endType, exprType);
-
-        VariableAssignment va = new VariableAssignment(typeInfo, varId, assignmentOperator, exprStmt, tasmIdx);
+        VariableAssignment va = new VariableAssignment(typeInfo, varId, assignmentOperator, exprs, exprStmt, tasmIdx);
 
         return va;
     }

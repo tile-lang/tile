@@ -36,6 +36,7 @@ public class TypeResolver {
         public String var_type = null;
         public boolean auto_cast = false;
         public String expr_type = null;
+        public TypeInfoArray info_array = null;
     }
     
     public static class TypeInfoArray {
@@ -69,6 +70,10 @@ public class TypeResolver {
 
     public static boolean isStringType(String type) {
         return type.equals("string");
+    }
+
+    public static boolean isArrayType(String type) {
+        return type.contains("[]");
     }
 
     // TODO: add boolean and har types as well
@@ -118,6 +123,7 @@ public class TypeResolver {
         switch (type) {
             case "int":
             case "float": return 4;
+            case "char": return 1;
         }
 
         // composite type
@@ -296,6 +302,24 @@ public class TypeResolver {
         }
 
         // IMPORTANT: vd can have null values be careful!
+        return vd;
+    }
+
+    public static TypeInfoVariableDef resolveVariableDefArrayType(String var_type, String expr_type, int reducedDim) {
+        if (!isArrayType(var_type)) {
+            System.err.println("it's not an array type");
+            return null;
+        }
+        TypeInfoVariableDef vd = new TypeInfoVariableDef();
+        String vardef_type = reduceDim(var_type, reducedDim);
+        vd.auto_cast = vardef_type.equals(getBaseType(var_type));
+        vd.expr_type = expr_type;
+        vd.var_type = vardef_type;
+        vd.result_type = vardef_type;
+        vd.info_array = new TypeInfoArray();
+        vd.info_array.type = var_type;
+        vd.info_array.element_size = resolveArrayTypeSize(getBaseType(var_type));
+
         return vd;
     }
 
