@@ -92,7 +92,7 @@ arrayValuedInitializer
     ;
 
 arrayValuedInitializerElements
-    : primaryExpression (',' primaryExpression)*
+    : expression (',' expression)*
     | arrayValuedInitializer (',' arrayValuedInitializer)*
     ;
 
@@ -101,7 +101,7 @@ arraySizedInitializer
     ;
 
 arraySizeSpecifier
-    : '[' primaryExpression ']'
+    : '[' expression ']'
     ;
 
 arrayIndexAccessor
@@ -109,7 +109,7 @@ arrayIndexAccessor
     ;
 
 arrayIndexSpecifier
-    : '[' primaryExpression ']'
+    : '[' expression ']'
     ;
 
 arrayIndexAccessorSetter

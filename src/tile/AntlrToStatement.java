@@ -319,7 +319,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             exprs = new ArrayList<>();
             AntlrToExpression exprVisitor = new AntlrToExpression();
             for (int i = 0; i < dim; i++) {
-                Expression expr = exprVisitor.visit(ctx.arrayIndexAccessorSetter().arrayIndexSpecifier(i).primaryExpression());
+                Expression expr = exprVisitor.visit(ctx.arrayIndexAccessorSetter().arrayIndexSpecifier(i).expression());
                 if (!TypeResolver.isIntType(expr.getType())) {
                     int line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
                     System.err.println("ERROR:" + line + ": Array index specifier setter must be 'int' type!");

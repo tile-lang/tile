@@ -400,7 +400,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         int dim = ctx.arraySizeSpecifier().size();
         List<Expression> arrSizes = new ArrayList<>();
         for (int i = 0; i < dim; i++) {
-            Expression expr = visit(ctx.arraySizeSpecifier(i).primaryExpression());
+            Expression expr = visit(ctx.arraySizeSpecifier(i).expression());
             String sizeExprType = expr.getType();
             if (!sizeExprType.equals("int")) {
                 int line = ctx.primaryTypeName().getStop().getLine();
@@ -438,7 +438,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
         List<Expression> exprs = new ArrayList<>();
         for (int i = 0; i < ctx.arrayIndexSpecifier().size(); i++) {
-            Expression expr = visit(ctx.arrayIndexSpecifier(i).primaryExpression());
+            Expression expr = visit(ctx.arrayIndexSpecifier(i).expression());
             if (!TypeResolver.isIntType(expr.getType())) {
                 int line = ctx.IDENTIFIER().getSymbol().getLine();
                 System.err.println("ERROR:" + line + ": Array index specifier must be 'int' type!");
