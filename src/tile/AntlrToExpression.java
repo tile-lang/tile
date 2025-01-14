@@ -35,6 +35,7 @@ import tile.ast.expr.ArrayInitializer;
 import tile.ast.expr.CastExpression;
 import tile.ast.expr.EqualityExpression;
 import tile.ast.expr.FuncCallExpression;
+import tile.ast.expr.LogicalExpression;
 import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
@@ -45,6 +46,7 @@ import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoBinop;
 import tile.ast.types.TypeResolver.TypeInfoBinopBool;
 import tile.ast.types.TypeResolver.TypeInfoCast;
+import tile.ast.types.TypeResolver.TypeInfoLogicalBinop;
 import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
@@ -213,7 +215,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
             String lhs_type = left.getType();
             String rhs_type = right.getType();;
-            TypeInfoBinopBool type = TypeResolver.resolveBinopBooleanType(lhs_type, rhs_type);
+            TypeInfoBinopBool type = TypeResolver.resolveBinopBooleanTypeEquality(lhs_type, rhs_type);
             left = new EqualityExpression(left, operator, right, type);
         }
         return left;
@@ -309,8 +311,30 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitLogicalAndExpression(LogicalAndExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitLogicalAndExpression(ctx);
+        if (ctx.equalityExpression().size() == 1) {
+            return visit(ctx.equalityExpression(0));
+        }
+
+        // Otherwise, process the operator and operands.
+        Expression left = visit(ctx.equalityExpression(0)); // The first operand.
+        for (int i = 1; i < ctx.equalityExpression().size(); i++) {
+            // Get the operator (* or /).
+            String operator = ctx.getChild((i * 2) - 1).getText(); // Operators are at odd indices.
+
+            // Visit the right operand.
+            Expression right = visit(ctx.equalityExpression(i));
+
+            String lhs_type = left.getType();
+            String rhs_type = right.getType();
+
+            if (!lhs_type.equals("bool") || !rhs_type.equals("bool")) {
+                int line = ctx.stop.getLine();
+                System.err.println("WARNING:" + line + ": logical expressions type should be a bool type!");
+            }
+            TypeInfoLogicalBinop type = TypeResolver.resolveBinopLogicalType(lhs_type, rhs_type);
+            left = new LogicalExpression(left, operator, right, type);
+        }
+        return left;
     }
 
     @Override

@@ -38,7 +38,11 @@ public class EqualityExpression implements Expression {
             } else if (typeInfo.type.result_type.equals("int")) {
                 generatedCode += "    eq\n";
             } else {
-                System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
+                if (typeInfo.type.result_type.equals("bool")) {
+                    generatedCode += "    eq\n";
+                } else {
+                    System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
+                }
             }
         } else if (operator.equals("!=")) {
             if (typeInfo.type.result_type.equals("float")) {
@@ -48,7 +52,12 @@ public class EqualityExpression implements Expression {
                 generatedCode += "    eq\n";
                 generatedCode += "    not\n";
             } else {
-                System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
+                if (typeInfo.type.result_type.equals("bool")) {
+                    generatedCode += "    eq\n";
+                    generatedCode += "    not\n";
+                } else {
+                    System.err.println("'" + operator + "'" + " operator is only for numeric types (int, float)");
+                }
             }
         }
 

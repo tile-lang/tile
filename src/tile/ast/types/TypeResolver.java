@@ -10,6 +10,12 @@ public class TypeResolver {
         public boolean rhs_auto_cast = false;
     }
 
+    public static class TypeInfoLogicalBinop {
+        public String result_type = null;
+        public String lhs_type = null;
+        public String rhs_type = null;
+    }
+
     public static class TypeInfoBinopBool {
         public String result_type = "bool";
         public TypeInfoBinop type;
@@ -119,6 +125,17 @@ public class TypeResolver {
         return ti;
     }
 
+    public static TypeInfoLogicalBinop resolveBinopLogicalType(String lhs, String rhs) {
+        // TODO: add auto cast feature
+        TypeInfoLogicalBinop ti = new TypeInfoLogicalBinop();
+        ti.rhs_type = rhs;
+        ti.lhs_type = lhs;
+        ti.result_type = "bool";
+        // TODO: make the whole system better!!!
+
+        return ti;
+    }
+
     private static int resolveArrayTypeSize(String type) {
         switch (type) {
             case "int":
@@ -200,6 +217,38 @@ public class TypeResolver {
             ti.result_type = "int";
         } else if (lhs.equals("bool") || rhs.equals("bool")) {
             System.err.println("ERROR: boolean type cannot be comparable with <, > , <=, >= operators");
+        } else {
+            // err handling could be neccesarry
+        }
+
+        TypeInfoBinopBool tb = new TypeInfoBinopBool();
+        tb.type = ti;
+        tb.result_type = "bool";
+
+        return tb;
+    }
+
+    public static TypeInfoBinopBool resolveBinopBooleanTypeEquality(String lhs, String rhs) {
+        TypeInfoBinop ti = new TypeInfoBinop();
+        System.out.println("lhs:" + lhs);
+        System.out.println("rhs:" + rhs);
+        if (lhs.equals("float") || rhs.equals("float")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "float";
+            if (lhs.equals("float") && !rhs.equals("float")) {
+                ti.rhs_auto_cast = true;
+            } else if (!lhs.equals("float") && rhs.equals("float")) {
+                ti.lhs_auto_cast = true;
+            }
+        } else if (lhs.equals("int") && rhs.equals("int")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "int";
+        } else if (lhs.equals("bool") || rhs.equals("bool")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "bool";
         } else {
             // err handling could be neccesarry
         }
