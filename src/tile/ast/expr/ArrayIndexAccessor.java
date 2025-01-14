@@ -20,6 +20,7 @@ public class ArrayIndexAccessor implements Expression {
     @Override
     public String generateTasm(String generatedCode) {
         generatedCode += "    load " + identifierTasmIdx + "\n";
+        generatedCode += "    deref ; dereferance\n";
         // FIXME:
         generatedCode = indicies.get(0).generateTasm(generatedCode);
         generatedCode += "    push " + typeInfo.element_size + "\n";

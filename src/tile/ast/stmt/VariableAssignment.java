@@ -1,6 +1,10 @@
 package tile.ast.stmt;
 
+import java.util.List;
+
+import tile.ast.base.Expression;
 import tile.ast.base.Statement;
+import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeInfoVariableDef;
 
 public class VariableAssignment implements Statement {
@@ -10,13 +14,15 @@ public class VariableAssignment implements Statement {
     private int tasmIdx;
     private Statement exprStmt;
     String assignmentOperator;
+    private List<Expression> indicies;
 
-    public VariableAssignment(TypeInfoVariableDef typeInfo, String varId, String assignmentOperator, Statement exprStmt, int tasmIdx) {
+    public VariableAssignment(TypeInfoVariableDef typeInfo, String varId, String assignmentOperator, List<Expression> indicies, Statement exprStmt, int tasmIdx) {
         this.typeInfo = typeInfo;
         this.varId = varId;
         this.exprStmt = exprStmt;
         this.tasmIdx = tasmIdx;
         this.assignmentOperator = assignmentOperator;
+        this.indicies = indicies;
     }
 
     public int getTasmIdx() {
@@ -47,9 +53,17 @@ public class VariableAssignment implements Statement {
             }
         }
 
-
-        generatedCode += "    ";
-        generatedCode += "store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+        if (typeInfo.info_array == null) {
+            generatedCode += "    ";
+            generatedCode += "store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+        } else {
+            generatedCode += "    load " + tasmIdx + "\n";
+            generatedCode += "    deref ; dereferance\n";
+            generatedCode = indicies.get(0).generateTasm(generatedCode);
+            generatedCode += "    push " + typeInfo.info_array.element_size + "\n";
+            generatedCode += "    mult\n";
+            generatedCode += "    hset\n";
+        }
 
         return generatedCode;
     }

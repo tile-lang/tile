@@ -33,7 +33,6 @@ public class RelationalExpression implements Expression {
             generatedCode += "    ci2f\n";
         }
 
-        // mult/div operation
         generatedCode += "    ";
         if (operator.equals("<")) {
             if (typeInfo.type.result_type.equals("float")) {
