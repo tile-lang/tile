@@ -1,3 +1,8 @@
+/*
+    01.14.2025
+    Muhammed Yasinhan Yaşar
+*/
+
 native func InitWindow(width: ci32, height: ci32, title: cptr): cvoid;
 native func WindowShouldClose(): ci8;
 native func CloseWindow(): cvoid;
@@ -5,8 +10,10 @@ native func BeginDrawing(): cvoid;
 native func EndDrawing(): cvoid;
 native func ClearBackground(color: cu32): cvoid;
 native func SetTargetFPS(fps: ci32): cvoid;
+native func GetFrameTime(): cf32;
 native func DrawRectangle(posX: ci32, posY: ci32, width: ci32, height: ci32, color: cu32): cvoid;
 native func DrawCircle(posX: ci32, posY: ci32, radius: cf32, color: cu32): cvoid;
+native func DrawLine(ci32, ci32, ci32, ci32, cu32): cvoid;
 native func IsKeyDown(key: ci16): ci8;
 
 native func SetRandomSeed(seed: cu32): cvoid;
@@ -34,9 +41,15 @@ func run_game(width: int, height: int): void {
     posx[0] = 0;
     posy[0] = 0;
 
+    move_interval: float = 0.1; // Snake moves every 0.1 seconds
+    move_timer: float = 0.0;
 
+    bool game_over = false;
 	// Main game loop
-    while (WindowShouldClose() == 0) {  // Detect window close button or ESC key
+    while (WindowShouldClose() == false && game_over == false) {  // ESC closes the window as well
+
+        // Update game logic based on timer
+        move_timer = move_timer + GetFrameTime();
 
         int i = 0;
         while (i < snake_count) {
@@ -44,90 +57,113 @@ func run_game(width: int, height: int): void {
             i = i + 1;
         }
 
-        if ((bool)IsKeyDown('W')) {
+        if ((bool)IsKeyDown('W') && dirs[0] != 2) {
             dirs[0] = 1; // up
-        } else if ((bool)IsKeyDown('S')) {
+        } else if ((bool)IsKeyDown('S') && dirs[0] != 1) {
             dirs[0] = 2; // down
-        } else if ((bool)IsKeyDown('A')) {
+        } else if ((bool)IsKeyDown('A') && dirs[0] != 4) {
             dirs[0] = 3; // left
-        } else if ((bool)IsKeyDown('D')) {
+        } else if ((bool)IsKeyDown('D') && dirs[0] != 3) {
             dirs[0] = 4; // right
         }
 
-        i = 0;
-        while (i < snake_count) {
-            if (dirs[i] == 1) {
-                posy[i] = posy[i] - snake_step; // up
-            } else if (dirs[i] == 2) {
-                posy[i] = posy[i] + snake_step; // down
-            } else if (dirs[i] == 3) {
-                posx[i] = posx[i] - snake_step; // left
-            } else if (dirs[i] == 4) {
-                posx[i] = posx[i] + snake_step; // right
-            }
+        if (move_timer >= move_interval) {
+            move_timer = move_timer - move_interval;
 
-            if (posx[i] + snake_size / 2 > width) {
-                posx[i] = 0;
-            } else if (posx[i] <= -snake_size) {
-                posx[i] = width - snake_size;
-            }
-    
-            if (posy[i] + snake_size / 2 > height) {
-                posy[i] = 0;
-            } else if (posy[i] <= -snake_size) {
-                posy[i] = height - snake_size;
-            }
+            i = 0;
+            while (i < snake_count) {
+                if (dirs[i] == 1) {
+                    posy[i] = posy[i] - snake_step; // up
+                } else if (dirs[i] == 2) {
+                    posy[i] = posy[i] + snake_step; // down
+                } else if (dirs[i] == 3) {
+                    posx[i] = posx[i] - snake_step; // left
+                } else if (dirs[i] == 4) {
+                    posx[i] = posx[i] + snake_step; // right
+                }
+                
 
-            i = i + 1;
-        }    
-    
-        i = 0;
-        while (i < snake_count) {
-            prev_dirs[i] = dirs[i];
-            i = i + 1;
-        }
-
-        // add a new part to the snake when snake eat the cherry
-        bool is_snake_eat_cherry = (int)posx[0] == (int)cherry_posx && (int)posy[0] == (int)cherry_posy;
-        if (is_snake_eat_cherry) {
-            int j = snake_count - 1;
-
-            if (dirs[j] == 1) {
-                posy[snake_count] = posy[j] + snake_step;
-                posx[snake_count] = posx[j];
-            } else if (dirs[j] == 2) {
-                posy[snake_count] = posy[j] - snake_step;
-                posx[snake_count] = posx[j];
-            } else if (dirs[j] == 3) {
-                posy[snake_count] = posy[j];
-                posx[snake_count] = posx[j] + snake_step;
-            } else if (dirs[j] == 4) {
-                posy[snake_count] = posy[j];
-                posx[snake_count] = posx[j] - snake_step;
-            }
-
-            snake_count = snake_count + 1;
-
-            // randomly put the cherry again
-            cherry_posx = GetRandomValue(0, 9) * snake_size;
-            cherry_posy = GetRandomValue(0, 9) * snake_size;
-        }        
+                if (posx[i] + snake_size / 2 > width) {
+                    posx[i] = 0;
+                } else if (posx[i] <= -snake_size) {
+                    posx[i] = width - snake_size;
+                }
         
+                if (posy[i] + snake_size / 2 > height) {
+                    posy[i] = 0;
+                } else if (posy[i] <= -snake_size) {
+                    posy[i] = height - snake_size;
+                }
+
+                if (posx[0] == posx[i] && posy[0] == posy[i] && i != 0) {
+                    game_over = true;
+                }
+
+                i = i + 1;
+            }    
+        
+            i = 0;
+            while (i < snake_count) {
+                prev_dirs[i] = dirs[i];
+                i = i + 1;
+            }
+
+            // add a new part to the snake when snake eat the cherry
+            bool is_snake_eat_cherry = (int)posx[0] == (int)cherry_posx && (int)posy[0] == (int)cherry_posy;
+            if (is_snake_eat_cherry) {
+                int j = snake_count - 1;
+
+                if (dirs[j] == 1) {
+                    posy[snake_count] = posy[j] + snake_step;
+                    posx[snake_count] = posx[j];
+                } else if (dirs[j] == 2) {
+                    posy[snake_count] = posy[j] - snake_step;
+                    posx[snake_count] = posx[j];
+                } else if (dirs[j] == 3) {
+                    posy[snake_count] = posy[j];
+                    posx[snake_count] = posx[j] + snake_step;
+                } else if (dirs[j] == 4) {
+                    posy[snake_count] = posy[j];
+                    posx[snake_count] = posx[j] - snake_step;
+                }
+
+                snake_count = snake_count + 1;
+
+                // randomly put the cherry again
+                cherry_posx = GetRandomValue(0, 9) * snake_size;
+                cherry_posy = GetRandomValue(0, 9) * snake_size;
+            }
+        }
     
         // Draw
         BeginDrawing();
-            ClearBackground(0xF3E5F5FF); // Green background
-
+            ClearBackground(0xF3E5F5FF); // background
             // cherry
-            DrawRectangle((int)cherry_posx, (int)cherry_posy, snake_size, snake_size, 0xFF0503FF);
+            // cherry_color = 0xFF7740DE;
+            cherry_color: int = 0xFFa584e3;
+            DrawRectangle((int)cherry_posx, (int)cherry_posy, snake_size, snake_size, cherry_color);
 
             
             i = 0;
-            // DrawCircle((int)posx[0] + snake_size / 2, (int)posy[0] + snake_size / 2, (float)(snake_size / 2) + 8, 0xFF4081FF);
+            snake_color: int = 0xFF4fa9f7;
             while (i < snake_count) {
-                DrawRectangle((int)posx[i], (int)posy[i], snake_size, snake_size, 0xFF4081FF);
+                DrawRectangle((int)posx[i], (int)posy[i], snake_size, snake_size, snake_color);
                 i = i + 1;
             }
+
+            // tiled background
+            i = 0;
+            int line_color = 0xFF013761;
+            while (i < width) {
+                i = i + snake_size;
+                DrawLine(i, 0, i, height, line_color);
+            }
+            i = 0;
+            while (i < height) {
+                i = i + snake_size;
+                DrawLine(0, i, width, i, line_color);
+            }
+
         EndDrawing();
     }
 
@@ -140,7 +176,7 @@ func main(argc: int): void {
     screenHeight: int = 400;
 
     InitWindow(screenWidth, screenHeight, 0);
-    SetTargetFPS(10);   // Set our game to run at 60 frames-per-second
+    SetTargetFPS(60);   // Set our game to run at 60 frames-per-second
 
 	run_game(screenWidth, screenHeight);
 
