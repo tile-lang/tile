@@ -92,7 +92,7 @@ arrayValuedInitializer
     ;
 
 arrayValuedInitializerElements
-    : primaryExpression (',' primaryExpression)*
+    : expression (',' expression)*
     | arrayValuedInitializer (',' arrayValuedInitializer)*
     ;
 
@@ -101,7 +101,7 @@ arraySizedInitializer
     ;
 
 arraySizeSpecifier
-    : '[' primaryExpression ']'
+    : '[' expression ']'
     ;
 
 arrayIndexAccessor
@@ -109,7 +109,7 @@ arrayIndexAccessor
     ;
 
 arrayIndexSpecifier
-    : '[' primaryExpression ']'
+    : '[' expression ']'
     ;
 
 arrayIndexAccessorSetter
@@ -145,16 +145,8 @@ shiftExpression
     : additiveExpression (('<<' | '>>') additiveExpression)*
     ;
 
-relationalExpression
-    : shiftExpression (('<' | '>' | '<=' | '>=') shiftExpression)*
-    ;
-
-equalityExpression
-    : relationalExpression (('==' | '!=') relationalExpression)*
-    ;
-
 andExpression
-    : equalityExpression ('&' equalityExpression)*
+    : shiftExpression ('&' shiftExpression)*
     ;
 
 exclusiveOrExpression
@@ -165,8 +157,16 @@ inclusiveOrExpression
     : exclusiveOrExpression ('|' exclusiveOrExpression)*
     ;
 
+relationalExpression
+    : inclusiveOrExpression (('<' | '>' | '<=' | '>=') inclusiveOrExpression)*
+    ;
+
+equalityExpression
+    : relationalExpression (('==' | '!=') relationalExpression)*
+    ;
+
 logicalAndExpression
-    : inclusiveOrExpression ('&&' inclusiveOrExpression)*
+    : equalityExpression ('&&' equalityExpression)*
     ;
 
 logicalOrExpression
