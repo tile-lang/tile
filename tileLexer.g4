@@ -23,11 +23,14 @@ KW_FLOAT
 KW_BOOL
     : 'bool'
     ;
-KW_TRUE
-    : 'true'
+KW_CHAR
+    : 'char'
     ;
-KW_FALSE
-    : 'false'
+KW_STRING
+    : 'string'
+    ;
+KW_VOID
+    : 'void'
     ;
 KW_WHILE
     : 'while'
@@ -49,6 +52,42 @@ KW_RETURN
     ;
 KW_NATIVE
     : 'native'
+    ;
+KW_CINT8
+    : 'ci8'
+    ;
+KW_CINT16
+    : 'ci16'
+    ;
+KW_CINT32
+    : 'ci32'
+    ;
+KW_CINT64
+    : 'ci64'
+    ;
+KW_CUINT8
+    : 'cu8'
+    ;
+KW_CUINT16
+    : 'cu16'
+    ;
+KW_CUINT32
+    : 'cu32'
+    ;
+KW_CUINT64
+    : 'cu64'
+    ;
+KW_CFLOAT32
+    : 'cf32'
+    ;
+KW_CFLOAT64
+    : 'cf64'
+    ;
+KW_CPTR
+    : 'cptr'
+    ;
+KW_CVOID
+    : 'cvoid'
     ;
 
 PUNC_LEFTPAREN
@@ -249,8 +288,8 @@ FLOAT_LITERAL
     ;
 
 BOOL_LITERAL
-    : KW_TRUE
-    | KW_FALSE
+    : 'true'
+    | 'false'
     ;
 
 STRING_LITERAL

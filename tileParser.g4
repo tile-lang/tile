@@ -11,14 +11,24 @@ options {
 }
 
 program
-    : statements? EOF
+    : globalStatements? EOF
     ;
 
-statements
-    : statement+
+globalStatements
+    : globalStatement+
     ;
 
-statement
+globalStatement
+    : variableStmt
+    | funcDefStmt
+    | nativeFuncDeclStmt
+    ;
+
+localStatements
+    : localStatement+
+    ;
+
+localStatement
     : expressionStmt
     | variableStmt
     | loopStmt
@@ -35,6 +45,9 @@ expressionStmt
 expression
     : primaryExpression
     | unaryExpression
+    | arrayIndexAccessor
+    | arrayValuedInitializer
+    | arraySizedInitializer
     | funcCallExpression
     | castExpression
     | multiplicativeExpression
@@ -56,6 +69,7 @@ primaryExpression
     | FLOAT_LITERAL
     | CHAR_LITERAL
     | BOOL_LITERAL
+    | STRING_LITERAL
     | IDENTIFIER
     | '(' expression ')'
     ;
@@ -67,22 +81,56 @@ unaryExpression
     ;
 
 unaryOperator
-    // : '+'
-    // | '-'
-    : '~'
+    : '+'
+    | '-'
+    | '~'
     | '!'
+    ;
+
+arrayValuedInitializer
+    : '[' arrayValuedInitializerElements? ']'
+    ;
+
+arrayValuedInitializerElements
+    : expression (',' expression)*
+    | arrayValuedInitializer (',' arrayValuedInitializer)*
+    ;
+
+arraySizedInitializer
+    : primaryTypeName arraySizeSpecifier+
+    ;
+
+arraySizeSpecifier
+    : '[' expression ']'
+    ;
+
+arrayIndexAccessor
+    : IDENTIFIER arrayIndexSpecifier+
+    ;
+
+arrayIndexSpecifier
+    : '[' expression ']'
+    ;
+
+arrayIndexAccessorSetter
+    : IDENTIFIER arrayIndexSpecifier+
     ;
 
 funcCallExpression
     : IDENTIFIER '(' (expression)? (',' expression)* ')'
+    | primaryExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
+    | funcCallExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
     ;
 
 castExpression
     : '(' typeName ')' primaryExpression
-    // | unaryExpression
     | primaryExpression
+    | '(' typeName ')' unaryExpression
+    | unaryExpression
     | '(' typeName ')' funcCallExpression
     | funcCallExpression
+    | '(' typeName ')' arrayIndexAccessor
+    | arrayIndexAccessor
     ;
 
 multiplicativeExpression
@@ -97,16 +145,8 @@ shiftExpression
     : additiveExpression (('<<' | '>>') additiveExpression)*
     ;
 
-relationalExpression
-    : shiftExpression (('<' | '>' | '<=' | '>=') shiftExpression)*
-    ;
-
-equalityExpression
-    : relationalExpression (('==' | '!=') relationalExpression)*
-    ;
-
 andExpression
-    : equalityExpression ('&' equalityExpression)*
+    : shiftExpression ('&' shiftExpression)*
     ;
 
 exclusiveOrExpression
@@ -117,8 +157,16 @@ inclusiveOrExpression
     : exclusiveOrExpression ('|' exclusiveOrExpression)*
     ;
 
+relationalExpression
+    : inclusiveOrExpression (('<' | '>' | '<=' | '>=') inclusiveOrExpression)*
+    ;
+
+equalityExpression
+    : relationalExpression (('==' | '!=') relationalExpression)*
+    ;
+
 logicalAndExpression
-    : inclusiveOrExpression ('&&' inclusiveOrExpression)*
+    : equalityExpression ('&&' equalityExpression)*
     ;
 
 logicalOrExpression
@@ -150,19 +198,22 @@ assignmentOperator
     ;
 
 variableStmt
-    : (variableDecleration | variableDefinition | variableAssignment) ';'
+    : (variableDecleration | variableDefinition | variableAssignment)
     ;
 
 variableDecleration
-    : typeName IDENTIFIER
+    : IDENTIFIER ':' typeName ';'
+    | typeName IDENTIFIER ';'
     ;
 
 variableDefinition
-    : typeName IDENTIFIER '=' expression
+    : IDENTIFIER ':' typeName '=' expressionStmt
+    | typeName IDENTIFIER '=' expressionStmt
     ;
 
 variableAssignment
-    : IDENTIFIER assignmentOperator expression
+    : IDENTIFIER assignmentOperator expressionStmt
+    | arrayIndexAccessorSetter assignmentOperator expressionStmt
     ;
 
 loopStmt
@@ -201,22 +252,60 @@ funcDefStmt
     : KW_FUNC IDENTIFIER '(' (argument)? (',' argument)* ')' ':' typeName blockStmt
     ;
 
+nativeFuncDeclStmt
+    : KW_NATIVE KW_FUNC IDENTIFIER '(' (cArgument)? (',' cArgument)* ')' ':' cTypeName ';'
+    ;
+
 returnStmt
     : KW_RETURN expressionStmt
     ;
 
 blockStmt
-    : '{' statements? '}'
+    : '{' localStatements? '}'
     ;
 
 argument
-    : KW_REF? typeName IDENTIFIER
+    : IDENTIFIER ':' KW_REF? typeName
+    // : KW_REF? typeName IDENTIFIER
+    ;
+
+cArgument
+    : (IDENTIFIER ':')? cTypeName
+    // : cTypeName IDENTIFIER?
     ;
 
 typeName
+    : primaryTypeName
+    | primaryArrTypeName
+    ;
+
+primaryArrTypeName
+    : primaryTypeName ('['']')+
+    ;
+
+primaryTypeName
     : KW_INT
     | KW_FLOAT
     | KW_BOOL
+    | KW_CHAR
     | KW_FUNC
+    | KW_VOID
+    | KW_STRING
     | IDENTIFIER // For custom types like structs
+    ;
+
+cTypeName
+    : KW_CINT8
+    | KW_CINT16
+    | KW_CINT32
+    | KW_CINT64
+    | KW_CUINT8
+    | KW_CUINT16
+    | KW_CUINT32
+    | KW_CUINT64
+    | KW_CFLOAT32
+    | KW_CFLOAT64
+    | KW_CPTR
+    | KW_CVOID
+    // | IDENTIFIER // For custom types like structs
     ;
