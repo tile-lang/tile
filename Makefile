@@ -1,5 +1,5 @@
 # variables
-BUILD = ./build-tile
+BUILD = build-tile
 LANG = tile
 LANG_PARSER = $(LANG)Parser
 LANG_LEXER = $(LANG)Lexer
@@ -9,17 +9,28 @@ RULE = program
 ANTLR = ./lib/antlr-4.7-complete.jar
 
 
+# Detect OS to set classpath separator
+ifeq ($(OS), Windows_NT)
+    CLASSPATH_SEP = ;
+	MKDIR_P = mkdir $(BUILD)
+else
+    CLASSPATH_SEP = :
+	MKDIR_P = mkdir -p $(BUILD)
+endif
+
+
 antlr: gen build
 
 gen:
 	java -jar $(ANTLR) -Dlanguage=Java -visitor -package $(PACKAGE) ./$(LANG_PARSER).g4 ./$(LANG_LEXER).g4 -o $(PACKAGE_PATH)
 
+# $(MKDIR_P)
 build:
-	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java -d $(BUILD)
-#src/tile/ast/expr/*.java
+	$(MKDIR_P)
+	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java src/tile/ast/types/*.java src/tile/sym/*.java -d $(BUILD)
 
 run:
-	java -cp "$(ANTLR);.;$(BUILD)" org.antlr.v4.gui.TestRig $(PACKAGE).$(LANG) $(RULE) -gui ./examples/test.tile
+	java -cp "$(ANTLR)$(CLASSPATH_SEP).$(CLASSPATH_SEP)$(BUILD)" org.antlr.v4.gui.TestRig $(PACKAGE).$(LANG) $(RULE) -gui ./examples/test.tile
 
 app:
-	java -cp "$(ANTLR);.;$(BUILD)" tile.app.Tile
+	java -cp "$(ANTLR)$(CLASSPATH_SEP).$(CLASSPATH_SEP)$(BUILD)" tile.app.Tile

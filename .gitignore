@@ -2,3 +2,6 @@
 build*
 src/gen
 examples/test*
+.vscode
+.idea
+tile.iml
