@@ -32,6 +32,7 @@ import tile.ast.stmt.ReturnStmt;
 import tile.ast.stmt.VariableAssignment;
 import tile.ast.stmt.VariableDefinition;
 import tile.ast.stmt.WhileStmt;
+import tile.ast.stmt.ForStmt;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
@@ -161,9 +162,44 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitForStmt(ForStmtContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitForStmt(ctx);
+        Statement init = null;
+        if (ctx.forInitial() != null) {
+            init = visit(ctx.forInitial());
+
+            // Store the for-loop variable in the scope
+            if (init instanceof VariableDefinition) {
+                VariableDefinition varDef = (VariableDefinition) init;
+                int blockId = Program.blockStack.get(Program.blockStack.size() - 1).getBlockId();
+                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varDef.getVarId());
+
+                // Prevent redefinition
+                if (Program.blockStack.get(Program.blockStack.size() - 1).variableSymbols.containsKey(tasmVarSym)) {
+                    System.err.println("ERROR: Variable '" + varDef.getVarId() + "' is already defined in the same scope!");
+                } else {
+                    Program.blockStack.get(Program.blockStack.size() - 1).variableSymbols.put(tasmVarSym, varDef);
+                }
+            }
+        }
+
+        // Extract loop expression statement (condition)
+        AntlrToExpression exprVisitor = new AntlrToExpression();
+        Expression condition = null;
+        if (ctx.expressionStmt() != null) {
+            condition = exprVisitor.visit(ctx.expressionStmt().expression());
+        }
+
+        // Extract update statement
+        Statement update = null;
+        if (ctx.forUpdate() != null) {
+            update = visit(ctx.forUpdate());
+        }
+
+        // Extract loop body
+        Statement body = visit(ctx.blockStmt());
+
+        return new ForStmt(init, condition, update, body);
     }
+
 
     @Override
     public Statement visitFuncDefStmt(FuncDefStmtContext ctx) {
