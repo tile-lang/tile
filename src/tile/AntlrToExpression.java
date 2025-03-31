@@ -39,6 +39,7 @@ import tile.ast.expr.LogicalExpression;
 import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
+import tile.ast.expr.ShiftExpression;
 import tile.ast.expr.UnaryExpression;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
@@ -393,8 +394,10 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitShiftExpression(ShiftExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitShiftExpression(ctx);
+        Expression left = visit(ctx.expression(0));
+        Expression right = visit(ctx.expression(1));
+        String operator = ctx.getChild(1).getText();
+        return new ShiftExpression(left, operator, right);
     }
 
     @Override
