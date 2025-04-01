@@ -46,6 +46,7 @@ import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoBinop;
 import tile.ast.types.TypeResolver.TypeInfoBinopBool;
+import tile.ast.types.TypeResolver.TypeInfoBinopInt;
 import tile.ast.types.TypeResolver.TypeInfoCast;
 import tile.ast.types.TypeResolver.TypeInfoLogicalBinop;
 import tile.sym.TasmSymbolGenerator;
@@ -394,10 +395,10 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitShiftExpression(ShiftExpressionContext ctx) {
-        Expression left = visit(ctx.expression(0));
-        Expression right = visit(ctx.expression(1));
+        Expression left = visit(ctx.getRuleContext(ExpressionContext.class, 0));
+        Expression right = visit(ctx.getRuleContext(ExpressionContext.class, 1));
         String operator = ctx.getChild(1).getText();
-        return new ShiftExpression(left, operator, right);
+        return new ShiftExpression(left, operator, right, new TypeInfoBinopInt());
     }
 
     @Override
