@@ -51,6 +51,16 @@ public class Program extends Generator {
         return generatedCode;
     }
 
+    public String pushBackGeneratedCode(String code) {
+        generatedCode += code;
+        return generatedCode;
+    }
+
+    public String pushForwardGeneratedCode(String code) {
+        generatedCode = code + generatedCode;
+        return generatedCode;
+    }
+
     private void writeOutput() {
         PrintWriter writer = null;
         try {
@@ -66,9 +76,10 @@ public class Program extends Generator {
 
     @Override
     public void generate() {
-        
         generatedCode = generateProgram(generatedCode);
+    }
 
+    public void write() {
         // debug:
         System.out.println(generatedCode);
         // write to a file

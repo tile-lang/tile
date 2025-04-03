@@ -13,18 +13,24 @@ import org.antlr.v4.runtime.Token;
 import gen.antlr.tile.tileLexer;
 import gen.antlr.tile.tileParser;
 import tile.AntlrToProgram;
+import tile.PrePassStatement;
 import tile.Program;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.VariableDefinition;
 
 public class Tile {
     public static void main(String args[]) {
-        tileParser parser = createTileParser("examples/snake.tile");
+        tileParser parser = createTileParser("examples/teststr.tile");
         ParseTree ast = parser.program();
         AntlrToProgram programVisitor = new AntlrToProgram();
         Program program = programVisitor.visit(ast);
 
         program.generate();
+        
+        PrePassStatement prePassVisitor = new PrePassStatement(program);
+        prePassVisitor.visit(ast);
+
+        program.write();
 
         
         for (Map.Entry<String, FunctionDefinition> entry : Program.funcDefSymbols.entrySet()) {
