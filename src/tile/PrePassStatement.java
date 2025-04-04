@@ -3,8 +3,6 @@ package tile;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.antlr.v4.runtime.ParserRuleContext;
-
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
 import gen.antlr.tile.tileParser.PrimaryExpressionContext;
@@ -65,6 +63,7 @@ public class PrePassStatement extends tileParserBaseVisitor<Void> {
         System.out.println("added: " + added);
         if (added) {
             generatedCodeData += "@data " + strLiteral + "\n";
+            generatedCodeData += "@data " + "0x00" + Integer.toHexString(strLiteral.length() - 2) + "\n";
         }
 
         return generatedCodeData;

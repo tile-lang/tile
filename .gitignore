@@ -2,6 +2,8 @@
 build*
 src/gen
 examples/test*
+examples/*/*.bin
+examples/*/*.tasm
 .vscode
 .idea
 tile.iml

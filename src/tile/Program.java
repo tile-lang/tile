@@ -61,10 +61,10 @@ public class Program extends Generator {
         return generatedCode;
     }
 
-    private void writeOutput() {
+    private void writeOutput(String outputPath) {
         PrintWriter writer = null;
         try {
-            writer = new PrintWriter("examples/test.tasm", "ASCII");
+            writer = new PrintWriter(outputPath, "ASCII");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (UnsupportedEncodingException e) {
@@ -79,11 +79,11 @@ public class Program extends Generator {
         generatedCode = generateProgram(generatedCode);
     }
 
-    public void write() {
+    public void write(String outputPath) {
         // debug:
         System.out.println(generatedCode);
         // write to a file
-        writeOutput();
+        writeOutput(outputPath);
     }
     
 }

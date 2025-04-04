@@ -1,5 +1,11 @@
 package tile.ast.expr;
 
+import java.sql.PreparedStatement;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Map.Entry;
+
+import tile.PrePassStatement;
 import tile.ast.base.Expression;
 import tile.ast.types.TypeResolver;
 
@@ -62,9 +68,20 @@ public class PrimaryExpression implements Expression {
         return generatedCode;
     }
 
+    private <T, E> T getKeyByValue(Map<T, E> map, E value) {
+        for (Entry<T, E> entry : map.entrySet()) {
+            if (Objects.equals(value, entry.getValue())) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public String generateTasmForString(String generatedCode) {
-        // FIXME: generate indicies
-        generatedCode += "    aloadc " + dataTasmIdx + "\n";
+        
+        String str = getKeyByValue(PrePassStatement.globalDataTableIndices, dataTasmIdx);
+
+        generatedCode += "    aloadc " + dataTasmIdx * 2 + " ; " + str + "\n";
         return generatedCode;
     }
 
