@@ -68,30 +68,32 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         if (count == 1) { 
             if (ctx.INT_LITERAL() != null) {
                 String intLiteral = ctx.INT_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, intLiteral, "int", false, 0);
+                expr = new PrimaryExpression(unaryOp, intLiteral, "int", false, 0, 0);
             }
             else if (ctx.FLOAT_LITERAL() != null) {
                 String floatLiteral = ctx.FLOAT_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, floatLiteral, "float", false, 0);
+                expr = new PrimaryExpression(unaryOp, floatLiteral, "float", false, 0, 0);
             }
             else if (ctx.CHAR_LITERAL() != null) {
                 String chrLiteral = ctx.CHAR_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, chrLiteral, "char", false, 0);
+                expr = new PrimaryExpression(unaryOp, chrLiteral, "char", false, 0, 0);
             }
             else if (ctx.BOOL_LITERAL() != null) {
                 String boolLiteral = ctx.BOOL_LITERAL().getText();
                 System.out.println("DEBUG::: " + boolLiteral);
                 if (boolLiteral.equals("true")) {
-                    expr = new PrimaryExpression(unaryOp, "1", "bool", false, 0);
+                    expr = new PrimaryExpression(unaryOp, "1", "bool", false, 0, 0);
                 }
                 else if (boolLiteral.equals("false")) {
-                    expr = new PrimaryExpression(unaryOp, "0", "bool", false, 0);
+                    expr = new PrimaryExpression(unaryOp, "0", "bool", false, 0, 0);
                 }
             }
             else if (ctx.STRING_LITERAL() != null) {
                 String strLiteral = ctx.STRING_LITERAL().getText();
-                System.out.println("STR_LITERAL: " + strLiteral);
-                expr = new PrimaryExpression(unaryOp, strLiteral, "string", false, 0);
+                int dataTasmIdx = PrePassStatement.dataTableIndicesGetOrAdd(strLiteral);
+                System.out.println("STR_LITERAL: " + strLiteral + " : " + dataTasmIdx);
+                
+                expr = new PrimaryExpression(unaryOp, strLiteral, "string", false, 0, dataTasmIdx);
             }
             else if (ctx.IDENTIFIER() != null) {
                 String identifier = ctx.IDENTIFIER().getText();
@@ -104,7 +106,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                     System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
                 }
 
-                expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx);
+                expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx, 0);
 
             }
         } else if (count == 3 && ctx.getChild(0).getText().equals("(") && ctx.getChild(2).getText().equals(")")) {

@@ -55,10 +55,20 @@ public class Program extends Generator {
         return generatedCode;
     }
 
-    private void writeOutput() {
+    public String pushBackGeneratedCode(String code) {
+        generatedCode += code;
+        return generatedCode;
+    }
+
+    public String pushForwardGeneratedCode(String code) {
+        generatedCode = code + generatedCode;
+        return generatedCode;
+    }
+
+    private void writeOutput(String outputPath) {
         PrintWriter writer = null;
         try {
-            writer = new PrintWriter("examples/test.tasm", "ASCII");
+            writer = new PrintWriter(outputPath, "ASCII");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (UnsupportedEncodingException e) {
@@ -70,13 +80,14 @@ public class Program extends Generator {
 
     @Override
     public void generate() {
-        
         generatedCode = generateProgram(generatedCode);
+    }
 
+    public void write(String outputPath) {
         // debug:
         System.out.println(generatedCode);
         // write to a file
-        writeOutput();
+        writeOutput(outputPath);
     }
     
 }

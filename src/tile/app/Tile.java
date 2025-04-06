@@ -13,19 +13,39 @@ import org.antlr.v4.runtime.Token;
 import gen.antlr.tile.tileLexer;
 import gen.antlr.tile.tileParser;
 import tile.AntlrToProgram;
+import tile.PrePassStatement;
 import tile.Program;
+import tile.app.CmdArgs.ArgResults;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.Variable;
 import tile.ast.stmt.VariableDefinition;
 
 public class Tile {
     public static void main(String args[]) {
-        tileParser parser = createTileParser("examples/snake.tile");
+
+        // command line arguments
+        ArgResults results = null;
+        try {
+            results = CmdArgs.parseCmdArgs(args);
+            System.out.println("Input File: " + results.inputFile);
+            System.out.println("Output File: " + results.outputFile);
+            System.out.println("Module: " + (results.module != null ? results.module : "Not specified"));
+        } catch (IllegalArgumentException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
+
+        tileParser parser = createTileParser(results.inputFile);
         ParseTree ast = parser.program();
         AntlrToProgram programVisitor = new AntlrToProgram();
         Program program = programVisitor.visit(ast);
 
         program.generate();
+        
+        PrePassStatement prePassVisitor = new PrePassStatement(program);
+        prePassVisitor.visit(ast);
+
+        program.write(results.outputFile);
 
         
         for (Map.Entry<String, FunctionDefinition> entry : Program.funcDefSymbols.entrySet()) {
