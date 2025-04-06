@@ -37,7 +37,11 @@ public class Program extends Generator {
         generatedCode += "\n";
 
         for (int i = 0; i < statements.size(); i++) {
-            generatedCode = statements.get(i).generateTasm(generatedCode);
+            Statement stmt = statements.get(i);
+            if (stmt != null)
+            generatedCode = stmt.generateTasm(generatedCode);
+            else
+                System.out.println("Error: statement is null at index " + i);
         }
 
         generatedCode += "__start:\n";

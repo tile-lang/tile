@@ -395,11 +395,20 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitShiftExpression(ShiftExpressionContext ctx) {
-        Expression left = visit(ctx.getRuleContext(ExpressionContext.class, 0));
-        Expression right = visit(ctx.getRuleContext(ExpressionContext.class, 1));
-        String operator = ctx.getChild(1).getText();
-        return new ShiftExpression(left, operator, right, new TypeInfoBinopInt());
+        List<AdditiveExpressionContext> exprs = ctx.additiveExpression();
+
+        if (exprs.size() == 2) {
+            Expression left = visit(exprs.get(0));
+            Expression right = visit(exprs.get(1));
+            String operator = ctx.getChild(1).getText();
+            return new ShiftExpression(left, operator, right, new TypeInfoBinopInt());
+        } else if (exprs.size() == 1) {
+            return visit(exprs.get(0));
+        }
+
+        throw new RuntimeException("ShiftExpressionContext has no expressions.");
     }
+
 
     @Override
     public Expression visitUnaryExpression(UnaryExpressionContext ctx) {

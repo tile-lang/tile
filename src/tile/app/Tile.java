@@ -19,7 +19,7 @@ import tile.ast.stmt.VariableDefinition;
 
 public class Tile {
     public static void main(String args[]) {
-        tileParser parser = createTileParser("examples/snake.tile");
+        tileParser parser = createTileParser("examples/test.tile");
         ParseTree ast = parser.program();
         AntlrToProgram programVisitor = new AntlrToProgram();
         Program program = programVisitor.visit(ast);
