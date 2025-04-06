@@ -2,10 +2,6 @@ package tile.ast.types;
 
 import java.util.*;
 
-/*
-*  Expressionların tiplerini çözüyor, func return type çözüyor vs.
-* */
-
 public class TypeResolver {
 
     public static final Map<String, TypeDef> userTypeDefs = new HashMap<>();
