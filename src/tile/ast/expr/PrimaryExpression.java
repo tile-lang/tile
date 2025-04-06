@@ -1,5 +1,11 @@
 package tile.ast.expr;
 
+import java.sql.PreparedStatement;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Map.Entry;
+
+import tile.PrePassStatement;
 import tile.ast.base.Expression;
 import tile.ast.types.TypeResolver;
 
@@ -10,8 +16,9 @@ public class PrimaryExpression implements Expression {
     private String unaryOp;
     private boolean isIdentifier;
     private int identifierTasmIdx;
+    private int dataTasmIdx;
 
-    public PrimaryExpression(String unaryOp, String value, String type, boolean isIdentifier, int tasmIdx) {
+    public PrimaryExpression(String unaryOp, String value, String type, boolean isIdentifier, int tasmIdx, int dataTasmIdx) {
         if (unaryOp != null) {
             this.value = unaryOp + value;
         } else {
@@ -20,6 +27,7 @@ public class PrimaryExpression implements Expression {
         this.type = type;
         this.isIdentifier = isIdentifier;
         this.identifierTasmIdx = tasmIdx;
+        this.dataTasmIdx = dataTasmIdx;
         this.unaryOp = unaryOp;
     }
 
@@ -60,9 +68,20 @@ public class PrimaryExpression implements Expression {
         return generatedCode;
     }
 
+    private <T, E> T getKeyByValue(Map<T, E> map, E value) {
+        for (Entry<T, E> entry : map.entrySet()) {
+            if (Objects.equals(value, entry.getValue())) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public String generateTasmForString(String generatedCode) {
-        // FIXME: generate indicies
-        generatedCode += "    aloadc " + "0" + "\n";
+        
+        String str = getKeyByValue(PrePassStatement.globalDataTableIndices, dataTasmIdx);
+
+        generatedCode += "    aloadc " + dataTasmIdx * 2 + " ; " + str + "\n";
         return generatedCode;
     }
 
@@ -79,12 +98,5 @@ public class PrimaryExpression implements Expression {
 
         return generatedCode;
     }
-
-    // TODO: create a one more pass and do this part on that first pass!
-    // public String generateTasmData(String generatedCodeData) {
-    //     //TODO: preprocess the string
-    //     generatedCodeData += "@data " + value + "\n";
-    //     return generatedCodeData;
-    // }
     
 }

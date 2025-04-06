@@ -39,12 +39,14 @@ import tile.ast.expr.LogicalExpression;
 import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
+import tile.ast.expr.ShiftExpression;
 import tile.ast.expr.UnaryExpression;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoBinop;
 import tile.ast.types.TypeResolver.TypeInfoBinopBool;
+import tile.ast.types.TypeResolver.TypeInfoBinopInt;
 import tile.ast.types.TypeResolver.TypeInfoCast;
 import tile.ast.types.TypeResolver.TypeInfoLogicalBinop;
 import tile.sym.TasmSymbolGenerator;
@@ -66,30 +68,32 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         if (count == 1) { 
             if (ctx.INT_LITERAL() != null) {
                 String intLiteral = ctx.INT_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, intLiteral, "int", false, 0);
+                expr = new PrimaryExpression(unaryOp, intLiteral, "int", false, 0, 0);
             }
             else if (ctx.FLOAT_LITERAL() != null) {
                 String floatLiteral = ctx.FLOAT_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, floatLiteral, "float", false, 0);
+                expr = new PrimaryExpression(unaryOp, floatLiteral, "float", false, 0, 0);
             }
             else if (ctx.CHAR_LITERAL() != null) {
                 String chrLiteral = ctx.CHAR_LITERAL().getText();
-                expr = new PrimaryExpression(unaryOp, chrLiteral, "char", false, 0);
+                expr = new PrimaryExpression(unaryOp, chrLiteral, "char", false, 0, 0);
             }
             else if (ctx.BOOL_LITERAL() != null) {
                 String boolLiteral = ctx.BOOL_LITERAL().getText();
                 System.out.println("DEBUG::: " + boolLiteral);
                 if (boolLiteral.equals("true")) {
-                    expr = new PrimaryExpression(unaryOp, "1", "bool", false, 0);
+                    expr = new PrimaryExpression(unaryOp, "1", "bool", false, 0, 0);
                 }
                 else if (boolLiteral.equals("false")) {
-                    expr = new PrimaryExpression(unaryOp, "0", "bool", false, 0);
+                    expr = new PrimaryExpression(unaryOp, "0", "bool", false, 0, 0);
                 }
             }
             else if (ctx.STRING_LITERAL() != null) {
                 String strLiteral = ctx.STRING_LITERAL().getText();
-                System.out.println("STR_LITERAL: " + strLiteral);
-                expr = new PrimaryExpression(unaryOp, strLiteral, "string", false, 0);
+                int dataTasmIdx = PrePassStatement.dataTableIndicesGetOrAdd(strLiteral);
+                System.out.println("STR_LITERAL: " + strLiteral + " : " + dataTasmIdx);
+                
+                expr = new PrimaryExpression(unaryOp, strLiteral, "string", false, 0, dataTasmIdx);
             }
             else if (ctx.IDENTIFIER() != null) {
                 String identifier = ctx.IDENTIFIER().getText();
@@ -102,7 +106,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                     System.err.println("ERROR:" + line + ": variable " + "'" + identifier + "' is not defined before use!");
                 }
 
-                expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx);
+                expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx, 0);
 
             }
         } else if (count == 3 && ctx.getChild(0).getText().equals("(") && ctx.getChild(2).getText().equals(")")) {
@@ -393,9 +397,20 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitShiftExpression(ShiftExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitShiftExpression(ctx);
+        List<AdditiveExpressionContext> exprs = ctx.additiveExpression();
+
+        if (exprs.size() == 2) {
+            Expression left = visit(exprs.get(0));
+            Expression right = visit(exprs.get(1));
+            String operator = ctx.getChild(1).getText();
+            return new ShiftExpression(left, operator, right, new TypeInfoBinopInt());
+        } else if (exprs.size() == 1) {
+            return visit(exprs.get(0));
+        }
+
+        throw new RuntimeException("ShiftExpressionContext has no expressions.");
     }
+
 
     @Override
     public Expression visitUnaryExpression(UnaryExpressionContext ctx) {

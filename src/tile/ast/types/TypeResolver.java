@@ -25,6 +25,11 @@ public class TypeResolver {
         public TypeInfoBinop type;
     }
 
+    public static class TypeInfoBinopInt {
+        public String result_type = "int";
+        public TypeInfoBinop type;
+    }    
+
     public static class TypeInfoCast {
         public String result_type; // result type
         public String expr_type; // type of child expr
@@ -267,6 +272,21 @@ public class TypeResolver {
 
         return tb;
     }
+
+    public static TypeInfoBinopInt resolveBinopShiftType(String lhs, String rhs) {
+        TypeInfoBinop ti = new TypeInfoBinop();
+        if (lhs.equals("int") && rhs.equals("int")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "int";
+        } else {
+            System.err.println("ERROR: Shift operators (<<, >>) only support integer types.");
+        }
+    
+        TypeInfoBinopInt shiftType = new TypeInfoBinopInt();
+        shiftType.type = ti;
+        return shiftType;
+    }    
 
     public static TypeInfoCast resolveCastType(String expr, String cast) {
         TypeInfoCast ti = new TypeInfoCast();
