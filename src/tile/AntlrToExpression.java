@@ -39,12 +39,14 @@ import tile.ast.expr.LogicalExpression;
 import tile.ast.expr.MultiplicativeExpression;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
+import tile.ast.expr.ShiftExpression;
 import tile.ast.expr.UnaryExpression;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoBinop;
 import tile.ast.types.TypeResolver.TypeInfoBinopBool;
+import tile.ast.types.TypeResolver.TypeInfoBinopInt;
 import tile.ast.types.TypeResolver.TypeInfoCast;
 import tile.ast.types.TypeResolver.TypeInfoLogicalBinop;
 import tile.sym.TasmSymbolGenerator;
@@ -393,9 +395,20 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitShiftExpression(ShiftExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitShiftExpression(ctx);
+        List<AdditiveExpressionContext> exprs = ctx.additiveExpression();
+
+        if (exprs.size() == 2) {
+            Expression left = visit(exprs.get(0));
+            Expression right = visit(exprs.get(1));
+            String operator = ctx.getChild(1).getText();
+            return new ShiftExpression(left, operator, right, new TypeInfoBinopInt());
+        } else if (exprs.size() == 1) {
+            return visit(exprs.get(0));
+        }
+
+        throw new RuntimeException("ShiftExpressionContext has no expressions.");
     }
+
 
     @Override
     public Expression visitUnaryExpression(UnaryExpressionContext ctx) {
