@@ -15,11 +15,12 @@ import gen.antlr.tile.tileParser;
 import tile.AntlrToProgram;
 import tile.Program;
 import tile.ast.stmt.FunctionDefinition;
+import tile.ast.stmt.Variable;
 import tile.ast.stmt.VariableDefinition;
 
 public class Tile {
     public static void main(String args[]) {
-        tileParser parser = createTileParser("examples/test.tile");
+        tileParser parser = createTileParser("examples/snake.tile");
         ParseTree ast = parser.program();
         AntlrToProgram programVisitor = new AntlrToProgram();
         Program program = programVisitor.visit(ast);
@@ -30,7 +31,7 @@ public class Tile {
         for (Map.Entry<String, FunctionDefinition> entry : Program.funcDefSymbols.entrySet()) {
             String funcKey = entry.getKey();
             String varKeys = "";
-            for (Map.Entry<String, VariableDefinition> varEntry : entry.getValue().getBlockStmt().variableSymbols.entrySet()) {
+            for (Map.Entry<String, Variable> varEntry : entry.getValue().getBlockStmt().variableSymbols.entrySet()) {
                 varKeys += varEntry.getKey() + ": " + varEntry.getValue().getTasmIdx() + ", ";
             }
 

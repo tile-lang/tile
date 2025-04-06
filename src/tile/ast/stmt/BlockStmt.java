@@ -16,7 +16,7 @@ public class BlockStmt implements Statement {
         ForLoopBlock
     }
 
-    public Map<String, VariableDefinition> variableSymbols;
+    public Map<String, Variable> variableSymbols;
 
     private BlockType blockType;
     private List<Statement> statements;
@@ -26,6 +26,7 @@ public class BlockStmt implements Statement {
     public static int generalBlockId = 0; // it is for defining vars!
     public static int ifStmtId = 0;
     public static int whileStmtId = 0;
+    public static int forStmtId = 0;
 
     public BlockStmt(BlockType blockType) {
         this.blockType = blockType;
@@ -57,6 +58,8 @@ public class BlockStmt implements Statement {
             ifStmtId++;
         } else if (this.blockType == BlockType.WhileLoopBlock) {
             whileStmtId++;
+        } else if (this.blockType == BlockType.ForLoopBlock) {
+            forStmtId++;
         }
         return generatedCode;
     }

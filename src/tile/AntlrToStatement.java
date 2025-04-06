@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
@@ -20,23 +21,20 @@ import gen.antlr.tile.tileParser.VariableAssignmentContext;
 import gen.antlr.tile.tileParser.VariableDeclerationContext;
 import gen.antlr.tile.tileParser.VariableDefinitionContext;
 import gen.antlr.tile.tileParser.WhileStmtContext;
+import gen.antlr.tile.tileParser.TypeDefinitionContext;
+import gen.antlr.tile.tileParser.StructDefinitionContext;
+import gen.antlr.tile.tileParser.FieldDefinitionContext;
+import gen.antlr.tile.tileParser.TypeUnionContext;
 import gen.antlr.tile.tileParserBaseVisitor;
 import tile.ast.base.*;
-import tile.ast.stmt.BlockStmt;
-import tile.ast.stmt.ExpressionStmt;
-import tile.ast.stmt.FunctionDefinition;
+import tile.ast.stmt.*;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
-import tile.ast.stmt.IfStmt;
-import tile.ast.stmt.NativeFunctionDecl;
-import tile.ast.stmt.ReturnStmt;
-import tile.ast.stmt.VariableAssignment;
-import tile.ast.stmt.VariableDefinition;
-import tile.ast.stmt.WhileStmt;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoRetStmt;
 import tile.ast.types.TypeResolver.TypeInfoVariableDef;
+import tile.ast.types.TypeDef;
 import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
@@ -126,6 +124,20 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 }
 
                 blockStmt.variableSymbols.put(tasmVarSym, ((VariableDefinition)stmt));
+            } else if (stmt instanceof VariableDecleration) {
+                variableTasmId = func.getTasmVarIdx();
+                ((VariableDecleration)stmt).setTasmIdx(variableTasmId);
+
+                String varId = ((VariableDecleration)stmt).getVarId();
+                int blockId = blockStmt.getBlockId();
+                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
+
+                if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
+                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                }
+
+                blockStmt.variableSymbols.put(tasmVarSym, ((VariableDecleration)stmt));
             }
             // if (stmt instanceof BlockStmt) {
             //     blockStmt.childBlocks.add((BlockStmt)stmt);
@@ -161,8 +173,74 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitForStmt(ForStmtContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitForStmt(ctx);
+        Statement init = null;
+        if (ctx.forInitial() != null) {
+            init = visit(ctx.forInitial());
+
+            // Store the for-loop variable in the scope
+            if (init instanceof VariableDefinition) {
+                VariableDefinition varDef = (VariableDefinition) init;
+                int blockId = Program.blockStack.get(Program.blockStack.size() - 1).getBlockId();
+                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varDef.getVarId());
+
+                // Prevent redefinition
+                if (Program.blockStack.get(Program.blockStack.size() - 1).variableSymbols.containsKey(tasmVarSym)) {
+                    System.err.println("ERROR: Variable '" + varDef.getVarId() + "' is already defined in the same scope!");
+                } else {
+                    Program.blockStack.get(Program.blockStack.size() - 1).variableSymbols.put(tasmVarSym, varDef);
+                }
+            }
+        }
+
+        // Extract loop expression statement (condition)
+        AntlrToExpression exprVisitor = new AntlrToExpression();
+        Expression condition = null;
+        if (ctx.expressionStmt() != null) {
+            condition = exprVisitor.visit(ctx.expressionStmt().expression());
+        }
+
+        // Extract update statement
+        Statement update = null;
+        if (ctx.forUpdate() != null) {
+            update = visit(ctx.forUpdate());
+        }
+
+        // Extract loop body
+        Statement body = visit(ctx.blockStmt());
+
+        return new ForStmt(init, condition, update, body);
+    }
+
+    @Override
+    public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
+        String name = ctx.IDENTIFIER().getText();
+
+        if (ctx.structDefinition() != null) {
+            TypeDef def = new TypeDef(name, TypeDef.Kind.STRUCT);
+            List<TypeDef.Field> fields = new ArrayList<>();
+
+            for (var fieldCtx : ctx.structDefinition().fieldDefinition()) {
+                String fieldName = fieldCtx.IDENTIFIER().getText();
+                String fieldType = fieldCtx.primaryTypeName().getText();
+                fields.add(new TypeDef.Field(fieldName, fieldType));
+            }
+
+            def.fields = fields;
+            TypeResolver.userTypeDefs.put(name, def);
+
+        } else if (ctx.typeUnion() != null) {
+            TypeDef def = new TypeDef(name, TypeDef.Kind.UNION);
+
+            List<String> variants = ctx.typeUnion().IDENTIFIER()
+                    .stream()
+                    .map(ParseTree::getText)
+                    .toList();
+
+            def.variants = variants;
+            TypeResolver.userTypeDefs.put(name, def);
+        }
+
+        return new ExpressionStmt(null, false);
     }
 
     @Override
@@ -339,7 +417,15 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     @Override
     public Statement visitVariableDecleration(VariableDeclerationContext ctx) {
         // TODO Auto-generated method stub
-        return super.visitVariableDecleration(ctx);
+        // int a;
+        // Cat b;
+
+        String type = ctx.typeName().getText();
+        String varId = ctx.IDENTIFIER().getText();
+
+        VariableDecleration v_dec = new VariableDecleration(type, varId);
+
+        return v_dec;
     }
 
     @Override

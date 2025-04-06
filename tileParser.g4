@@ -22,6 +22,7 @@ globalStatement
     : variableStmt
     | funcDefStmt
     | nativeFuncDeclStmt
+    | typeDefinition
     ;
 
 localStatements
@@ -209,6 +210,7 @@ variableDecleration
 variableDefinition
     : IDENTIFIER ':' typeName '=' expressionStmt
     | typeName IDENTIFIER '=' expressionStmt
+    | typeName IDENTIFIER '=' '{' ( '.' variableAssignment (',' '.' variableAssignment)*)? '}' // TODO: discuss syntax
     ;
 
 variableAssignment
@@ -308,4 +310,21 @@ cTypeName
     | KW_CPTR
     | KW_CVOID
     // | IDENTIFIER // For custom types like structs
+    ;
+
+typeDefinition
+    : KW_TYPE IDENTIFIER structDefinition
+    | KW_TYPE IDENTIFIER ':' typeUnion ';'
+    ;
+
+structDefinition
+    : '{' fieldDefinition* '}'
+    ;
+
+fieldDefinition
+    : IDENTIFIER ':' primaryTypeName ';'
+    ;
+
+typeUnion
+    : IDENTIFIER ('|' IDENTIFIER)*
     ;
