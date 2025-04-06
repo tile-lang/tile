@@ -16,7 +16,7 @@ public class BlockStmt implements Statement {
         ForLoopBlock
     }
 
-    public Map<String, VariableDefinition> variableSymbols;
+    public Map<String, Variable> variableSymbols;
 
     private BlockType blockType;
     private List<Statement> statements;

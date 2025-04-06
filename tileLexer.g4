@@ -14,6 +14,9 @@ KW_FUNC
 KW_REF
     : 'ref'
     ;
+KW_TYPE
+    : 'type'
+    ;
 KW_INT
     : 'int'
     ;

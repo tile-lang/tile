@@ -1,7 +1,15 @@
 package tile.ast.types;
 
+import java.util.*;
+
+/*
+*  Expressionların tiplerini çözüyor, func return type çözüyor vs.
+* */
 
 public class TypeResolver {
+
+    public static final Map<String, TypeDef> userTypeDefs = new HashMap<>();
+
     public static class TypeInfoBinop {
         public String result_type = null;
         public String lhs_type = null;
@@ -80,6 +88,10 @@ public class TypeResolver {
 
     public static boolean isArrayType(String type) {
         return type.contains("[]");
+    }
+
+    public static boolean isUserDefinedType(String type) {
+        return userTypeDefs.containsKey(type);
     }
 
     // TODO: add boolean and har types as well
@@ -326,6 +338,10 @@ public class TypeResolver {
     }
 
     public static TypeInfoVariableDef resolveVariableDefType(String var_type, String expr_type) {
+        // int a = 5;
+        // int -> var_type: int
+        // 5 -> expr_type: int
+
         TypeInfoVariableDef vd = new TypeInfoVariableDef();
         if (var_type.equals(expr_type)) {
             vd.auto_cast = false;
