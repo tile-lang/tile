@@ -2,9 +2,11 @@ package tile.ast.types;
 
 import java.util.*;
 
+import tile.ast.stmt.TypeDefinition;
+
 public class TypeResolver {
 
-    public static final Map<String, TypeDef> userTypeDefs = new HashMap<>();
+    public static final Map<String, TypeDefinition> userTypeDefs = new HashMap<>();
 
     public static class TypeInfoBinop {
         public String result_type = null;

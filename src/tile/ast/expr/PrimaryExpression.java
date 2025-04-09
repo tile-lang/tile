@@ -20,7 +20,11 @@ public class PrimaryExpression implements Expression {
 
     public PrimaryExpression(String unaryOp, String value, String type, boolean isIdentifier, int tasmIdx, int dataTasmIdx) {
         if (unaryOp != null) {
-            this.value = unaryOp + value;
+            if (unaryOp.equals("-") || unaryOp.equals("+")) {
+                this.value = unaryOp + value;
+            } else {
+                this.value = value;
+            }
         } else {
             this.value = value;
         }
@@ -39,7 +43,8 @@ public class PrimaryExpression implements Expression {
     private String generateTasmForPrimitive(String generatedCode) {
         generatedCode += "    ";
         if (isIdentifier) {
-            if (unaryOp != null) {
+            boolean isUnaryNull = unaryOp != null;
+            if (isUnaryNull) {
                 if (unaryOp.equals("-")) {
                     if (type.equals("int")) {
                         generatedCode += "    ";
@@ -51,7 +56,7 @@ public class PrimaryExpression implements Expression {
                 }
             }
             generatedCode += "load " + identifierTasmIdx + "\n";
-            if (unaryOp != null) {
+            if (isUnaryNull) {
                 if (unaryOp.equals("-")) {
                     if (type.equals("int")) {
                         generatedCode += "    ";
@@ -60,6 +65,30 @@ public class PrimaryExpression implements Expression {
                         generatedCode += "    ";
                         generatedCode += "subf" + "\n";
                     }
+                }
+            }
+
+            if (isUnaryNull) {
+                if (unaryOp.equals("--")) {
+                    if (type.equals("int")) {
+                        generatedCode += "    ";
+                        generatedCode += "dec" + " ; --\n";
+                    } else if (type.equals("float")) {
+                        generatedCode += "    ";
+                        generatedCode += "decf" + " ; --\n";
+                    }
+                    generatedCode += "store " + identifierTasmIdx + "\n";
+                    generatedCode += "load " + identifierTasmIdx + "\n";
+                } else if (unaryOp.equals("++")) {
+                    if (type.equals("int")) {
+                        generatedCode += "    ";
+                        generatedCode += "inc" + " ; ++\n";
+                    } else if (type.equals("float")) {
+                        generatedCode += "    ";
+                        generatedCode += "incf" + " ; ++\n";
+                    }
+                    generatedCode += "    store " + identifierTasmIdx + "\n";
+                    generatedCode += "    load " + identifierTasmIdx + "\n";
                 }
             }
         } else {

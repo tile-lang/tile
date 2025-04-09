@@ -6,40 +6,55 @@ import tile.ast.base.Statement;
 public class ForStmt implements Statement {
 
     private Statement init;
-    private Expression condition;
-    private Statement update;
+    private Statement conditionStmt;
+    private Expression update;
     private Statement block;
 
-    public ForStmt(Statement init, Expression condition, Statement update, Statement block) {
+    public ForStmt(Statement init, Statement conditionStmt, Expression update, Statement block) {
         this.init = init;
-        this.condition = condition;
+        this.conditionStmt = conditionStmt;
         this.update = update;
         this.block = block;
+    }
+
+    public void setBody(Statement body) {
+        this.block = body;
+    }
+
+    public void setUpdate(Expression update) {
+        this.update = update;
+    }
+
+    public void setCondition(Statement condition) {
+        this.conditionStmt = condition;
+    }
+
+    public Statement getInit() {
+        return init;
+    }
+
+    public void setInit(Statement init) {
+        this.init = init;
     }
 
     @Override
     public String generateTasm(String generatedCode) {
         int forId = BlockStmt.forStmtId;
 
-        if (init != null) {
-            generatedCode = init.generateTasm(generatedCode);
-        }
+        generatedCode = init.generateTasm(generatedCode);
 
+        generatedCode = conditionStmt.generateTasm(generatedCode);
+        generatedCode += "jz " + "_" + BlockStmt.scopeId + "for_end" + forId + "\n";
         generatedCode += "_" + BlockStmt.scopeId + "for" + forId + ":\n";
 
-        if (condition != null) {
-            generatedCode = condition.generateTasm(generatedCode);
-        }
-
-        generatedCode += "jz _" + BlockStmt.scopeId + "for_end" + forId + "\n";
         generatedCode = block.generateTasm(generatedCode);
+        generatedCode = conditionStmt.generateTasm(generatedCode);
 
-        generatedCode += "_" + BlockStmt.scopeId + "for_update" + forId + ":\n";
         if (update != null) {
             generatedCode = update.generateTasm(generatedCode);
         }
 
-        generatedCode += "jnz _" + BlockStmt.scopeId + "for" + forId + "\n";
+        generatedCode += "jnz " + "_" + BlockStmt.scopeId + "for" + forId + "\n";
         generatedCode += "_" + BlockStmt.scopeId + "for_end" + forId + ":\n";
 
         return generatedCode;

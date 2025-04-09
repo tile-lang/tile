@@ -1,0 +1,12 @@
+
+func main(argc: int): void {
+
+    
+    for (k: int = 0; k < 10; k++) {
+
+    }
+}
+
+
+
+
