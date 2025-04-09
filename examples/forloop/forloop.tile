@@ -1,10 +1,13 @@
 
 func main(argc: int): void {
 
-    
-    for (k: int = 0; k < 10; k++) {
-
+    sum: int = 0;
+    for (k: int = 0; k < 15; k++) {
+        sum = sum + k;
     }
+
+
+    int a =  sum * 2;
 }
 
 

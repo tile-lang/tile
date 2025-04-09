@@ -48,12 +48,12 @@ public class ForStmt implements Statement {
         generatedCode += "_" + BlockStmt.scopeId + "for" + forId + ":\n";
 
         generatedCode = block.generateTasm(generatedCode);
-        generatedCode = conditionStmt.generateTasm(generatedCode);
 
         if (update != null) {
             generatedCode = update.generateTasm(generatedCode);
         }
 
+        generatedCode = conditionStmt.generateTasm(generatedCode);
         generatedCode += "jnz " + "_" + BlockStmt.scopeId + "for" + forId + "\n";
         generatedCode += "_" + BlockStmt.scopeId + "for_end" + forId + ":\n";
 

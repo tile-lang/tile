@@ -77,8 +77,6 @@ public class PrimaryExpression implements Expression {
                         generatedCode += "    ";
                         generatedCode += "decf" + " ; --\n";
                     }
-                    generatedCode += "store " + identifierTasmIdx + "\n";
-                    generatedCode += "load " + identifierTasmIdx + "\n";
                 } else if (unaryOp.equals("++")) {
                     if (type.equals("int")) {
                         generatedCode += "    ";
@@ -87,9 +85,10 @@ public class PrimaryExpression implements Expression {
                         generatedCode += "    ";
                         generatedCode += "incf" + " ; ++\n";
                     }
-                    generatedCode += "    store " + identifierTasmIdx + "\n";
-                    generatedCode += "    load " + identifierTasmIdx + "\n";
                 }
+                generatedCode += "    store " + identifierTasmIdx + "\n";
+                // TODO: solve the "load"ing the value problem for each iteration unary operator ++ or -- called. It fills stack! (use pop or don't generate the load below under some conditions!)
+                generatedCode += "    load " + identifierTasmIdx + "\n";
             }
         } else {
             generatedCode += "push " + value + "\n";
