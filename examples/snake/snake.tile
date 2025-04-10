@@ -51,10 +51,8 @@ func run_game(width: int, height: int): void {
         // Update game logic based on timer
         move_timer = move_timer + GetFrameTime();
 
-        int i = 0;
-        while (i < snake_count) {
+        for (i: int = 0; i < snake_count; i++) {
             dirs[i + 1] = prev_dirs[i];
-            i = i + 1;
         }
 
         if ((bool)IsKeyDown('W') && dirs[0] != 2) {
@@ -70,8 +68,7 @@ func run_game(width: int, height: int): void {
         if (move_timer >= move_interval) {
             move_timer = move_timer - move_interval;
 
-            i = 0;
-            while (i < snake_count) {
+            for (i: int = 0; i < snake_count; i++) {
                 if (dirs[i] == 1) {
                     posy[i] = posy[i] - snake_step; // up
                 } else if (dirs[i] == 2) {
@@ -98,14 +95,10 @@ func run_game(width: int, height: int): void {
                 if (posx[0] == posx[i] && posy[0] == posy[i] && i != 0) {
                     game_over = true;
                 }
-
-                i = i + 1;
             }    
         
-            i = 0;
-            while (i < snake_count) {
+            for (i: int = 0; i < snake_count; i++) {
                 prev_dirs[i] = dirs[i];
-                i = i + 1;
             }
 
             // add a new part to the snake when snake eat the cherry
@@ -144,22 +137,18 @@ func run_game(width: int, height: int): void {
             DrawRectangle((int)cherry_posx, (int)cherry_posy, snake_size, snake_size, cherry_color);
 
             
-            i = 0;
             snake_color: int = 0xFF4fa9f7;
-            while (i < snake_count) {
+            for (i: int = 0; i < snake_count; i++) {
                 DrawRectangle((int)posx[i], (int)posy[i], snake_size, snake_size, snake_color);
-                i = i + 1;
             }
 
             // tiled background
-            i = 0;
             int line_color = 0xFF013761;
-            while (i < width) {
+            for (i: int = 0; i < width;) {
                 i = i + snake_size;
                 DrawLine(i, 0, i, height, line_color);
             }
-            i = 0;
-            while (i < height) {
+            for (i: int = 0; i < height;) {
                 i = i + snake_size;
                 DrawLine(0, i, width, i, line_color);
             }

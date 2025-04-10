@@ -1,8 +1,10 @@
-package tile.ast.types;
+package tile.ast.stmt;
 
 import java.util.List;
 
-public class TypeDef {
+import tile.ast.base.Statement;
+
+public class TypeDefinition implements Statement {
     public enum Kind {
         STRUCT,
         UNION
@@ -24,8 +26,16 @@ public class TypeDef {
     public List<Field> fields;       // for struct
     public List<String> variants;    // for union
 
-    public TypeDef(String name, Kind kind) {
+    public TypeDefinition(String name, Kind kind) {
         this.name = name;
         this.kind = kind;
+    }
+
+    @Override
+    public String generateTasm(String generatedCode) {
+        /*
+        This method Does Not Work like the others
+         */
+        return generatedCode;
     }
 }

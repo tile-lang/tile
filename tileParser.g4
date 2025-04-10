@@ -49,6 +49,7 @@ expression
     | arrayIndexAccessor
     | arrayValuedInitializer
     | arraySizedInitializer
+    | objectLiteralExpression
     | funcCallExpression
     | castExpression
     | multiplicativeExpression
@@ -75,10 +76,23 @@ primaryExpression
     | '(' expression ')'
     ;
 
+objectLiteralExpression
+    :
+    '{' ( objectLiteralFieldAssignment (',' objectLiteralFieldAssignment)*)? ','? '}'
+    ;
+
+objectLiteralFieldAssignment
+    : '.' IDENTIFIER assignmentOperator expression
+    ;
+
 unaryExpression
-    : ( '++' | '--' ) IDENTIFIER
-    | IDENTIFIER ( '++' | '--' )
+    : incDecOperator primaryExpression
+    | primaryExpression incDecOperator
     | unaryOperator primaryExpression
+    ;
+
+incDecOperator
+    : ( '++' | '--' )
     ;
 
 unaryOperator
@@ -210,7 +224,6 @@ variableDecleration
 variableDefinition
     : IDENTIFIER ':' typeName '=' expressionStmt
     | typeName IDENTIFIER '=' expressionStmt
-    | typeName IDENTIFIER '=' '{' ( '.' variableAssignment (',' '.' variableAssignment)*)? '}' // TODO: discuss syntax
     ;
 
 variableAssignment
@@ -235,7 +248,12 @@ forInitial
 forUpdate
     : unaryExpression
     | funcCallExpression
-    | variableAssignment
+    | forUpdateAssingment
+    ;
+
+forUpdateAssingment
+    : IDENTIFIER assignmentOperator expression
+    | arrayIndexAccessorSetter assignmentOperator expression
     ;
 
 forStmt
@@ -322,7 +340,8 @@ structDefinition
     ;
 
 fieldDefinition
-    : IDENTIFIER ':' primaryTypeName ';'
+    : IDENTIFIER ':' typeName ';'
+    | typeName IDENTIFIER ';'
     ;
 
 typeUnion

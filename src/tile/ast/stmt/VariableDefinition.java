@@ -50,9 +50,6 @@ public class VariableDefinition implements Statement, Variable {
             }
 
             generatedCode += "    store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
-        } else {
-            // no initializer, declare only
-            generatedCode += "    ; declare " + typeInfo.var_type + " " + varId + "\n";
         }
 
         return generatedCode;

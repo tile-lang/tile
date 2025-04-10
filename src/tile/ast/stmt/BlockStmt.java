@@ -19,7 +19,7 @@ public class BlockStmt implements Statement {
     public Map<String, Variable> variableSymbols;
 
     private BlockType blockType;
-    private List<Statement> statements;
+    public List<Statement> statements;
 
     private int blockId = 0;
     public static int scopeId = 0;
