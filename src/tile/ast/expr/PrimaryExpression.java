@@ -43,8 +43,8 @@ public class PrimaryExpression implements Expression {
     private String generateTasmForPrimitive(String generatedCode) {
         generatedCode += "    ";
         if (isIdentifier) {
-            boolean isUnaryNull = unaryOp != null;
-            if (isUnaryNull) {
+            boolean isUnaryNotNull = unaryOp != null;
+            if (isUnaryNotNull) {
                 if (unaryOp.equals("-")) {
                     if (type.equals("int")) {
                         generatedCode += "    ";
@@ -56,7 +56,7 @@ public class PrimaryExpression implements Expression {
                 }
             }
             generatedCode += "load " + identifierTasmIdx + "\n";
-            if (isUnaryNull) {
+            if (isUnaryNotNull) {
                 if (unaryOp.equals("-")) {
                     if (type.equals("int")) {
                         generatedCode += "    ";
@@ -68,27 +68,25 @@ public class PrimaryExpression implements Expression {
                 }
             }
 
-            if (isUnaryNull) {
+            if (isUnaryNotNull) {
+                // TODO: solve the "load"ing the value problem for each iteration unary operator ++ or -- called. It fills stack! (use pop or don't generate the load below under some conditions!)
                 if (unaryOp.equals("--")) {
                     if (type.equals("int")) {
-                        generatedCode += "    ";
-                        generatedCode += "dec" + " ; --\n";
+                        generatedCode += "    dec" + " ; --\n";
                     } else if (type.equals("float")) {
-                        generatedCode += "    ";
-                        generatedCode += "decf" + " ; --\n";
+                        generatedCode += "    decf" + " ; --\n";
                     }
+                    generatedCode += "    store " + identifierTasmIdx + "\n";
+                    generatedCode += "    load " + identifierTasmIdx + "\n";
                 } else if (unaryOp.equals("++")) {
                     if (type.equals("int")) {
-                        generatedCode += "    ";
-                        generatedCode += "inc" + " ; ++\n";
+                        generatedCode += "    inc" + " ; ++\n";
                     } else if (type.equals("float")) {
-                        generatedCode += "    ";
-                        generatedCode += "incf" + " ; ++\n";
+                        generatedCode += "    incf" + " ; ++\n";
                     }
+                    generatedCode += "    store " + identifierTasmIdx + "\n";
+                    generatedCode += "    load " + identifierTasmIdx + "\n";
                 }
-                generatedCode += "    store " + identifierTasmIdx + "\n";
-                // TODO: solve the "load"ing the value problem for each iteration unary operator ++ or -- called. It fills stack! (use pop or don't generate the load below under some conditions!)
-                generatedCode += "    load " + identifierTasmIdx + "\n";
             }
         } else {
             generatedCode += "push " + value + "\n";

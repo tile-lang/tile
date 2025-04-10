@@ -51,6 +51,7 @@ public class ForStmt implements Statement {
 
         if (update != null) {
             generatedCode = update.generateTasm(generatedCode);
+            generatedCode += "    pop\n";
         }
 
         generatedCode = conditionStmt.generateTasm(generatedCode);
