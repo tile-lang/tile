@@ -12,6 +12,7 @@ import gen.antlr.tile.tileParser.EqualityExpressionContext;
 import gen.antlr.tile.tileParser.ExclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.ExpressionContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
+import gen.antlr.tile.tileParser.ForUpdateContext;
 import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.InclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.LogicalAndExpressionContext;
@@ -41,6 +42,7 @@ import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.ShiftExpression;
 import tile.ast.expr.UnaryExpression;
+import tile.ast.stmt.ForStmt;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
@@ -62,7 +64,11 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         String unaryOp = null;
         if (ctx.getParent() instanceof UnaryExpressionContext) {
             parent = ctx.getParent();
-            unaryOp = ((UnaryExpressionContext)parent).unaryOperator().getText();
+            if (((UnaryExpressionContext)parent).unaryOperator() != null) {
+                unaryOp = ((UnaryExpressionContext)parent).unaryOperator().getText();
+            } else if (((UnaryExpressionContext)parent).incDecOperator() != null) {
+                unaryOp = ((UnaryExpressionContext)parent).incDecOperator().getText();
+            }
         }
 
         if (count == 1) { 
@@ -416,15 +422,25 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
     public Expression visitUnaryExpression(UnaryExpressionContext ctx) {
         Expression expr = null;
         if (ctx.primaryExpression() != null) {
+            expr = visit(ctx.primaryExpression());
+            String type = expr.getType();
             if (ctx.unaryOperator() != null) {
                 String unaryOp = ctx.unaryOperator().getText();
-                expr = visit(ctx.primaryExpression());
 
                 if (unaryOp.equals("+") || unaryOp.equals("-")) {
-                    String type = expr.getType();
                     if (!(type.equals("int") || type.equals("float"))) {
                         System.err.println("ERROR: '+' and '-' prefixes cannot go before any non-numeric type!");
                     }
+                }
+            }
+            else if (ctx.incDecOperator() != null) {
+                String incDecOp = ctx.incDecOperator().getText();
+                if (ctx.primaryExpression().IDENTIFIER() != null) {
+                    if (!(type.equals("int") || type.equals("float"))) {
+                        System.err.println("ERROR: '++' and '--' operators cannot go before any non-numeric type!");
+                    }
+                } else {
+                    System.err.println("ERROR: '++' and '--' operators had to be used with an identifier!");
                 }
             }
         }
@@ -492,5 +508,22 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         return new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
     }
 
-    
+    @Override
+    public Expression visitForUpdate(ForUpdateContext ctx) {
+        Expression result = null;
+        if (ctx.unaryExpression() != null) {
+            System.out.println("ctx.unaryExpression");
+            result = visit(ctx.unaryExpression());
+        } else if (ctx.forUpdateAssingment() != null) {
+            System.out.println("ctx.forUpdateAssingment");
+            result = visit(ctx.forUpdateAssingment());
+        } else if (ctx.funcCallExpression() != null) {
+            System.out.println("ctx.funcCallExpression");
+            result = visit(ctx.funcCallExpression());
+        }
+        System.out.println("visitForUpdate result " + result);
+
+        return result;
+    }
+
 }

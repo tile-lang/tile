@@ -1,6 +1,8 @@
 package tile;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -9,6 +11,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.ForStmtContext;
+import gen.antlr.tile.tileParser.ForUpdateContext;
 import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.IfStmtContext;
@@ -20,10 +23,12 @@ import gen.antlr.tile.tileParser.SelectionStmtContext;
 import gen.antlr.tile.tileParser.VariableAssignmentContext;
 import gen.antlr.tile.tileParser.VariableDeclerationContext;
 import gen.antlr.tile.tileParser.VariableDefinitionContext;
+import gen.antlr.tile.tileParser.VariableStmtContext;
 import gen.antlr.tile.tileParser.WhileStmtContext;
 import gen.antlr.tile.tileParser.TypeDefinitionContext;
 import gen.antlr.tile.tileParser.StructDefinitionContext;
 import gen.antlr.tile.tileParser.FieldDefinitionContext;
+import gen.antlr.tile.tileParser.ForInitialContext;
 import gen.antlr.tile.tileParser.TypeUnionContext;
 import gen.antlr.tile.tileParserBaseVisitor;
 import tile.ast.base.*;
@@ -34,7 +39,6 @@ import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoRetStmt;
 import tile.ast.types.TypeResolver.TypeInfoVariableDef;
-import tile.ast.types.TypeDef;
 import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
@@ -98,12 +102,56 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 }
                 blockStmt.variableSymbols.put(tasmVarSym, vd);
             }
+        } else if (parent instanceof ForStmtContext) {
+            if (!Program.parentStack.isEmpty() && Program.parentStack.peek() instanceof ForStmt) {
+                ForStmt parentForStmt = (ForStmt) Program.parentStack.peek();
+                Statement init = parentForStmt.getInit();
+
+                int blockId = blockStmt.getBlockId();
+                String varId = null;
+                String type = null;
+                VariableStmtContext vctx = ((ForStmtContext)parent).forInitial().variableStmt();
+                if (vctx != null) {
+                    if (vctx.variableDefinition() != null) {
+                        varId = vctx.variableDefinition().IDENTIFIER().getText();
+                        type = vctx.variableDefinition().typeName().getText();
+                    }
+                }
+                variableTasmId = func.getTasmVarIdx();
+                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
+                Statement exprStmt = visit(vctx.variableDefinition().expressionStmt());
+                String exprType = ((ExpressionStmt)exprStmt).getType();
+    
+                if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
+                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                }
+
+                if (init instanceof VariableDefinition) {
+                    TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
+                    VariableDefinition vd = new VariableDefinition(typeInfo, varId, exprStmt);
+                    vd.setTasmIdx(variableTasmId);
+                    init = vd;
+                    blockStmt.variableSymbols.put(tasmVarSym, vd);
+                    System.out.println("forstmt:tasmVarSym: " + tasmVarSym);
+                } else if (init instanceof VariableDecleration) {
+                    TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
+                    VariableDecleration vd = new VariableDecleration(typeInfo.var_type, varId);
+                    vd.setTasmIdx(variableTasmId);
+                    init = vd;
+                    blockStmt.variableSymbols.put(tasmVarSym, vd);
+                }
+                parentForStmt.setInit(init);
+            }
         }
 
-
         
+        System.out.println("HEREME: " + Program.blockStack.size());
+
         if (ctx.localStatements() == null) {
-            Program.blockStack.remove(Program.blockStack.size() - 1);
+            if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
+                Program.blockStack.remove(Program.blockStack.size() - 1);
+            }
             return blockStmt;
         }
         
@@ -139,12 +187,14 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
                 blockStmt.variableSymbols.put(tasmVarSym, ((VariableDecleration)stmt));
             }
-            // if (stmt instanceof BlockStmt) {
-            //     blockStmt.childBlocks.add((BlockStmt)stmt);
-            // }
             blockStmt.addStatement(stmt);
         }
-        Program.blockStack.remove(Program.blockStack.size() - 1);
+        
+
+        if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
+            Program.blockStack.remove(Program.blockStack.size() - 1);
+        }
+
         return blockStmt;
     }
 
@@ -153,8 +203,14 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         // We need to eliminate code generation for ExpressionStmtContext whose parents are NOT ReturnStmtContext.
         // this will eliminate code lines like: "5;" or "3 + 8 * 2;" to generate 'push' and 'binop(mult, add etc.)' instructions.
         boolean generate = false;
-        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext) || ctx.getParent() instanceof VariableDefinitionContext || ctx.getParent() instanceof VariableAssignmentContext) {
+        if ((ctx.getParent() instanceof ReturnStmtContext) || (ctx.getChild(0).getChild(0) instanceof FuncCallExpressionContext) || ctx.getParent() instanceof VariableDefinitionContext || ctx.getParent() instanceof VariableAssignmentContext || ctx.getParent() instanceof ForStmtContext) {
             generate = true;
+        } else {
+            if (ctx.expression().unaryExpression() != null) {
+                if (ctx.expression().unaryExpression().incDecOperator() != null) {
+                    generate = true;
+                }
+            }
         }
         AntlrToExpression exprVisitor = new AntlrToExpression();
 
@@ -172,76 +228,81 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     }
 
     @Override
-    public Statement visitForStmt(ForStmtContext ctx) {
-        Statement init = null;
-        if (ctx.forInitial() != null) {
-            init = visit(ctx.forInitial());
-
-            // Store the for-loop variable in the scope
-            if (init instanceof VariableDefinition) {
-                VariableDefinition varDef = (VariableDefinition) init;
-                int blockId = Program.blockStack.get(Program.blockStack.size() - 1).getBlockId();
-                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varDef.getVarId());
-
-                // Prevent redefinition
-                if (Program.blockStack.get(Program.blockStack.size() - 1).variableSymbols.containsKey(tasmVarSym)) {
-                    System.err.println("ERROR: Variable '" + varDef.getVarId() + "' is already defined in the same scope!");
-                } else {
-                    Program.blockStack.get(Program.blockStack.size() - 1).variableSymbols.put(tasmVarSym, varDef);
-                }
-            }
-        }
-
-        // Extract loop expression statement (condition)
-        AntlrToExpression exprVisitor = new AntlrToExpression();
-        Expression condition = null;
-        if (ctx.expressionStmt() != null) {
-            condition = exprVisitor.visit(ctx.expressionStmt().expression());
-        }
-
-        // Extract update statement
-        Statement update = null;
-        if (ctx.forUpdate() != null) {
-            update = visit(ctx.forUpdate());
-        }
-
-        // Extract loop body
+    public Statement visitForStmt(ForStmtContext ctx) {        
+        Statement init = visit(ctx.forInitial());
+        
+        // Create the ForStmt but don't return it yet
+        ForStmt forStmt = new ForStmt(init, null, null, null);
+        Program.parentStack.push(forStmt);
+        // Visit the block, which can now modify the parent ForStmt
         Statement body = visit(ctx.blockStmt());
+        Statement condition = visit(ctx.expressionStmt());
 
-        return new ForStmt(init, condition, update, body);
+        if (!(((ExpressionStmt)condition).getType().equals("bool"))) {
+            int line = ctx.KW_FOR().getSymbol().getLine();
+            System.err.println("WARNING:" + line + ": for condition expression type should be a bool type!");
+        }
+
+        AntlrToExpression exprVisitor = new AntlrToExpression();
+        Expression update = null;
+        if (ctx.forUpdate() != null) {
+            update = exprVisitor.visit(ctx.forUpdate());
+        }
+
+        forStmt.setBody(body);
+        forStmt.setCondition(condition);
+        forStmt.setUpdate(update);
+        Program.parentStack.pop();
+
+        Program.blockStack.remove(Program.blockStack.size() - 1);
+        return forStmt;
     }
 
     @Override
-    public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
-        String name = ctx.IDENTIFIER().getText();
-
-        if (ctx.structDefinition() != null) {
-            TypeDef def = new TypeDef(name, TypeDef.Kind.STRUCT);
-            List<TypeDef.Field> fields = new ArrayList<>();
-
-            for (var fieldCtx : ctx.structDefinition().fieldDefinition()) {
-                String fieldName = fieldCtx.IDENTIFIER().getText();
-                String fieldType = fieldCtx.primaryTypeName().getText();
-                fields.add(new TypeDef.Field(fieldName, fieldType));
-            }
-
-            def.fields = fields;
-            TypeResolver.userTypeDefs.put(name, def);
-
-        } else if (ctx.typeUnion() != null) {
-            TypeDef def = new TypeDef(name, TypeDef.Kind.UNION);
-
-            List<String> variants = ctx.typeUnion().IDENTIFIER()
-                    .stream()
-                    .map(ParseTree::getText)
-                    .toList();
-
-            def.variants = variants;
-            TypeResolver.userTypeDefs.put(name, def);
+    public Statement visitForInitial(ForInitialContext ctx) {
+        Statement result = null;
+        if (ctx.expressionStmt() != null) {
+            result = visit(ctx.expressionStmt());
+        }
+        else if (ctx.variableStmt() != null) {
+            result = visit(ctx.variableStmt());
         }
 
-        return new ExpressionStmt(null, false);
+        return result;
     }
+
+    // @Override
+    // public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
+    //     String name = ctx.IDENTIFIER().getText();
+
+    //     if (ctx.structDefinition() != null) {
+    //         TypeDefinition def = new TypeDefinition(name, TypeDefinition.Kind.STRUCT);
+    //         List<String> fields = new ArrayList<>();
+
+    //         for (var fieldCtx : ctx.structDefinition().fieldDefinition()) {
+    //             String fieldName = fieldCtx.IDENTIFIER().getText();
+    //             String fieldType = fieldCtx.typeName().getText();
+    //             fields.add(new String(fieldName, fieldType));
+    //         }
+
+    //         def.fields = fields;
+    //         TypeResolver.userTypeDefs.put(name, def);
+
+    //     } else if (ctx.typeUnion() != null) {
+    //         TypeDefinition def = new TypeDefinition(name, TypeDefinition.Kind.UNION);
+
+    //         List<String> variants = ctx.typeUnion().IDENTIFIER()
+    //                 .stream()
+    //                 .map(ParseTree::getText)
+    //                 .toList();
+
+    //         def.variants = variants;
+    //         TypeResolver.userTypeDefs.put(name, def);
+    //     }
+
+    //     return new ExpressionStmt(null, false);
+    //     return super.visitTypeDefinition(ctx);
+    // }
 
     @Override
     public Statement visitFuncDefStmt(FuncDefStmtContext ctx) {
@@ -267,7 +328,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         // visit block statement
         // it will set itself to function
-        visit(ctx.getChild(ctx.getChildCount() - 1));
+        visit(ctx.blockStmt());
 
         return fds;
     }
