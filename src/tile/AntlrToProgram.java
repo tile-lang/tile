@@ -11,6 +11,7 @@ public class AntlrToProgram extends tileParserBaseVisitor<Program>{
     @Override
     public Program visitProgram(ProgramContext ctx) {
         Program program = new Program();
+        if (ctx.globalStatements() == null) return program;
 
         AntlrToStatement statementVisitor = new AntlrToStatement();
         for (int i = 0; i < ctx.globalStatements().globalStatement().size(); i++) {

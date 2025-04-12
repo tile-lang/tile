@@ -2,12 +2,27 @@
 func main(argc: int): void {
 
     sum: int = 0;
+    res: int = 1;
     for (k: int = 0; k < 15; k++) {
         sum = sum + k;
+        int x = 1;
+        for (j: int = 0; j < 15; j++) {
+            x = sum * j + k;
+        }
+        int y = 1;
+        for (j: int = 0; j < 15; j++) {
+            y = sum - j * k;
+        }
+        res = res + x * y;
     }
 
+    int a = res;
+    a = 5.3;
 
-    int a =  sum * 2;
+
+
+
+    
 }
 
 

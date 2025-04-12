@@ -27,9 +27,9 @@ public class Tile {
         ArgResults results = null;
         try {
             results = CmdArgs.parseCmdArgs(args);
-            System.out.println("Input File: " + results.inputFile);
-            System.out.println("Output File: " + results.outputFile);
-            System.out.println("Module: " + (results.module != null ? results.module : "Not specified"));
+            Log.debug("Input File: " + results.inputFile);
+            Log.debug("Output File: " + results.outputFile);
+            Log.debug("Module: " + (results.module != null ? results.module : "Not specified"));
         } catch (IllegalArgumentException e) {
             System.err.println(e.getMessage());
             System.exit(1);
@@ -55,7 +55,7 @@ public class Tile {
                 varKeys += varEntry.getKey() + ": " + varEntry.getValue().getTasmIdx() + ", ";
             }
 
-            System.out.println(funcKey + " -> " +  varKeys);
+            Log.debug(funcKey + " -> " +  varKeys);
         }
     }
 

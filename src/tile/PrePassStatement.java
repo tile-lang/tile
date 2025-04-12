@@ -6,6 +6,7 @@ import java.util.Map;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
 import gen.antlr.tile.tileParser.PrimaryExpressionContext;
+import tile.app.Log;
 import gen.antlr.tile.tileParserBaseVisitor;
 
 public class PrePassStatement extends tileParserBaseVisitor<Void> {
@@ -60,7 +61,7 @@ public class PrePassStatement extends tileParserBaseVisitor<Void> {
         //TODO: preprocess the string
         
         boolean added = dataTableIsNew(strLiteral);
-        System.out.println("added: " + added);
+        Log.debug("added: " + added);
         if (added) {
             generatedCodeData += "@data " + strLiteral + "\n";
             generatedCodeData += "@data " + "0x00" + Integer.toHexString(strLiteral.length() - 2) + "\n";
