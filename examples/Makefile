@@ -21,11 +21,10 @@ all: $(BIN_FILES)
 
 %.tasm: %.tile
 	@echo "Compiling TILE: examples/$< -> examples/$@"
-	@$(MAKE) -C .. app ARGS="examples/$< -o examples/$@"
+	@$(MAKE) -C .. app ARGS="examples/$< -o examples/$@ -l raylib.dll -gen-tasm"
 
 %.bin: %.tasm
 	@echo "Compiling TASM: $< -> $@"
-	@tasm $< -o $@ -l raylib.dll
 
 
 # Clean up only the .bin files and the .tasm files
