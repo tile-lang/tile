@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Map.Entry;
 
 import tile.PrePassStatement;
+import tile.app.Log;
 import tile.ast.base.Expression;
 import tile.ast.types.TypeResolver;
 
@@ -20,7 +21,11 @@ public class PrimaryExpression implements Expression {
 
     public PrimaryExpression(String unaryOp, String value, String type, boolean isIdentifier, int tasmIdx, int dataTasmIdx) {
         if (unaryOp != null) {
-            this.value = unaryOp + value;
+            if (unaryOp.equals("-") || unaryOp.equals("+")) {
+                this.value = unaryOp + value;
+            } else {
+                this.value = value;
+            }
         } else {
             this.value = value;
         }
@@ -39,7 +44,8 @@ public class PrimaryExpression implements Expression {
     private String generateTasmForPrimitive(String generatedCode) {
         generatedCode += "    ";
         if (isIdentifier) {
-            if (unaryOp != null) {
+            boolean isUnaryNotNull = unaryOp != null;
+            if (isUnaryNotNull) {
                 if (unaryOp.equals("-")) {
                     if (type.equals("int")) {
                         generatedCode += "    ";
@@ -51,7 +57,7 @@ public class PrimaryExpression implements Expression {
                 }
             }
             generatedCode += "load " + identifierTasmIdx + "\n";
-            if (unaryOp != null) {
+            if (isUnaryNotNull) {
                 if (unaryOp.equals("-")) {
                     if (type.equals("int")) {
                         generatedCode += "    ";
@@ -60,6 +66,27 @@ public class PrimaryExpression implements Expression {
                         generatedCode += "    ";
                         generatedCode += "subf" + "\n";
                     }
+                }
+            }
+
+            if (isUnaryNotNull) {
+                // TODO: solve the "load"ing the value problem for each iteration unary operator ++ or -- called. It fills stack! (use pop or don't generate the load below under some conditions!)
+                if (unaryOp.equals("--")) {
+                    if (type.equals("int")) {
+                        generatedCode += "    dec" + " ; --\n";
+                    } else if (type.equals("float")) {
+                        generatedCode += "    decf" + " ; --\n";
+                    }
+                    generatedCode += "    store " + identifierTasmIdx + "\n";
+                    generatedCode += "    load " + identifierTasmIdx + "\n";
+                } else if (unaryOp.equals("++")) {
+                    if (type.equals("int")) {
+                        generatedCode += "    inc" + " ; ++\n";
+                    } else if (type.equals("float")) {
+                        generatedCode += "    incf" + " ; ++\n";
+                    }
+                    generatedCode += "    store " + identifierTasmIdx + "\n";
+                    generatedCode += "    load " + identifierTasmIdx + "\n";
                 }
             }
         } else {
@@ -87,7 +114,7 @@ public class PrimaryExpression implements Expression {
 
     @Override
     public String generateTasm(String generatedCode) {
-        System.out.println("primary type:" + type);
+        Log.debug("primary type:" + type);
         if (TypeResolver.isNumericType(type) || TypeResolver.isCharType(type) || TypeResolver.isBoolType(type)) {
             generatedCode = generateTasmForPrimitive(generatedCode);
         } else if (TypeResolver.isStringType(type)) {

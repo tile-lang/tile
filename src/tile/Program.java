@@ -3,7 +3,9 @@ package tile;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +15,7 @@ import tile.ast.stmt.BlockStmt;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.NativeFunctionDecl;
 import tile.ast.stmt.VariableDefinition;
+import tile.app.Log;
 import tile.ast.base.Generator;
 
 public class Program extends Generator {
@@ -21,6 +24,7 @@ public class Program extends Generator {
     public static Map<String, NativeFunctionDecl> nativeFuncDeclSymbols = new HashMap<>();
     public static List<BlockStmt> blockStack = new ArrayList<>();
     public static Map<String, VariableDefinition> globalVariableSymbols = new HashMap<>();
+    public static Deque<Statement> parentStack = new ArrayDeque<>();
 
     public Program() {
         super();
@@ -39,9 +43,7 @@ public class Program extends Generator {
         for (int i = 0; i < statements.size(); i++) {
             Statement stmt = statements.get(i);
             if (stmt != null)
-            generatedCode = stmt.generateTasm(generatedCode);
-            else
-                System.out.println("Error: statement is null at index " + i);
+                generatedCode = stmt.generateTasm(generatedCode);
         }
 
         generatedCode += "__start:\n";
@@ -85,7 +87,7 @@ public class Program extends Generator {
 
     public void write(String outputPath) {
         // debug:
-        System.out.println(generatedCode);
+        Log.debug(generatedCode);
         // write to a file
         writeOutput(outputPath);
     }

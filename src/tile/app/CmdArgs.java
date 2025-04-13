@@ -58,12 +58,12 @@ public class CmdArgs {
         }
 
         if (showHelp) {
-            System.out.println("Usage: tile <input> [-o <output>] [-l <dynamic-library>]\n [-h]\n [-v | --v | -version | --version]");
+            Log.info("Usage: tile <input> [-o <output>] [-l <dynamic-library>]\n [-h]\n [-v | --v | -version | --version]");
             System.exit(0);
         }
 
         if (showVersion) {
-            System.out.println("0.0.1");
+            Log.info("0.0.1");
             System.exit(0);
         }
 
