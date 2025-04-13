@@ -246,8 +246,8 @@ public class TypeResolver {
 
     public static TypeInfoBinopBool resolveBinopBooleanTypeEquality(String lhs, String rhs) {
         TypeInfoBinop ti = new TypeInfoBinop();
-        System.out.println("lhs:" + lhs);
-        System.out.println("rhs:" + rhs);
+        Log.debug("lhs:" + lhs);
+        Log.debug("rhs:" + rhs);
         if (lhs.equals("float") || rhs.equals("float")) {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
@@ -337,7 +337,7 @@ public class TypeResolver {
             tr.ret_type = ret;
 
             if (!(tr.expr_type.equals(tr.ret_type))) {
-                System.out.println("WARNING: autocast from type '" + tr.expr_type + "' to type '" + tr.ret_type + "' may be unwanted!");
+                Log.warning("autocast from type '" + tr.expr_type + "' to type '" + tr.ret_type + "' may be unwanted!");
             }
 
             tr.result_type = ret;
