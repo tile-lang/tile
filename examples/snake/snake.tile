@@ -130,20 +130,20 @@ func run_game(width: int, height: int): void {
     
         // Draw
         BeginDrawing();
-            ClearBackground(0xF3E5F5FF); // background
+            ClearBackground(0xFFF5E5F3); // background
             // cherry
-            // cherry_color = 0xFF7740DE;
-            cherry_color: int = 0xFFa584e3;
+            // cherry_color = 0xDE4077FF;
+            cherry_color: int = 0xE384A5FF;
             DrawRectangle((int)cherry_posx, (int)cherry_posy, snake_size, snake_size, cherry_color);
 
             
-            snake_color: int = 0xFF4fa9f7;
+            snake_color: int = 0xF7A94FFF;
             for (i: int = 0; i < snake_count; i++) {
                 DrawRectangle((int)posx[i], (int)posy[i], snake_size, snake_size, snake_color);
             }
 
             // tiled background
-            int line_color = 0xFF013761;
+            int line_color = 0x613701FF;
             for (i: int = 0; i < width;) {
                 i = i + snake_size;
                 DrawLine(i, 0, i, height, line_color);
@@ -162,7 +162,7 @@ func run_game(width: int, height: int): void {
 func main(argc: int): void {
 
     screenWidth: int = 400;
-    screenHeight: int = 400;
+    screenHeight: int = screenWidth;
 
     InitWindow(screenWidth, screenHeight, "Snake Game");
     SetTargetFPS(60);   // Set our game to run at 60 frames-per-second

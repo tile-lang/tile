@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Map.Entry;
 
 import tile.PrePassStatement;
+import tile.app.Log;
 import tile.ast.base.Expression;
 import tile.ast.types.TypeResolver;
 
@@ -113,7 +114,7 @@ public class PrimaryExpression implements Expression {
 
     @Override
     public String generateTasm(String generatedCode) {
-        System.out.println("primary type:" + type);
+        Log.debug("primary type:" + type);
         if (TypeResolver.isNumericType(type) || TypeResolver.isCharType(type) || TypeResolver.isBoolType(type)) {
             generatedCode = generateTasmForPrimitive(generatedCode);
         } else if (TypeResolver.isStringType(type)) {

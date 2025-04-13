@@ -15,6 +15,7 @@ import tile.ast.stmt.BlockStmt;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.NativeFunctionDecl;
 import tile.ast.stmt.VariableDefinition;
+import tile.app.Log;
 import tile.ast.base.Generator;
 
 public class Program extends Generator {
@@ -42,9 +43,7 @@ public class Program extends Generator {
         for (int i = 0; i < statements.size(); i++) {
             Statement stmt = statements.get(i);
             if (stmt != null)
-            generatedCode = stmt.generateTasm(generatedCode);
-            else
-                System.out.println("Error: statement is null at index " + i);
+                generatedCode = stmt.generateTasm(generatedCode);
         }
 
         generatedCode += "__start:\n";
@@ -88,7 +87,7 @@ public class Program extends Generator {
 
     public void write(String outputPath) {
         // debug:
-        System.out.println(generatedCode);
+        Log.debug(generatedCode);
         // write to a file
         writeOutput(outputPath);
     }

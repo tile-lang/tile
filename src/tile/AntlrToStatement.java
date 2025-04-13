@@ -31,6 +31,7 @@ import gen.antlr.tile.tileParser.FieldDefinitionContext;
 import gen.antlr.tile.tileParser.ForInitialContext;
 import gen.antlr.tile.tileParser.TypeUnionContext;
 import gen.antlr.tile.tileParserBaseVisitor;
+import tile.app.Log;
 import tile.ast.base.*;
 import tile.ast.stmt.*;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
@@ -98,7 +99,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
                 blockStmt.variableSymbols.put(tasmVarSym, vd);
             }
@@ -124,7 +125,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
 
                 if (init instanceof VariableDefinition) {
@@ -133,7 +134,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                     vd.setTasmIdx(variableTasmId);
                     init = vd;
                     blockStmt.variableSymbols.put(tasmVarSym, vd);
-                    System.out.println("forstmt:tasmVarSym: " + tasmVarSym);
+                    Log.debug("forstmt:tasmVarSym: " + tasmVarSym);
                 } else if (init instanceof VariableDecleration) {
                     TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
                     VariableDecleration vd = new VariableDecleration(typeInfo.var_type, varId);
@@ -146,7 +147,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         }
 
         
-        System.out.println("HEREME: " + Program.blockStack.size());
+        Log.debug("HEREME: " + Program.blockStack.size());
 
         if (ctx.localStatements() == null) {
             if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
@@ -168,7 +169,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
 
                 blockStmt.variableSymbols.put(tasmVarSym, ((VariableDefinition)stmt));
@@ -182,7 +183,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
 
                 blockStmt.variableSymbols.put(tasmVarSym, ((VariableDecleration)stmt));
@@ -379,7 +380,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         }
         if (parent == null) {
             int line = ctx.KW_RETURN().getSymbol().getLine();
-            System.err.println("ERROR:" + line + ": " + "return statement cannot be used outside a function definiton!");
+            Log.error(line + ": " + "return statement cannot be used outside a function definiton!");
             return null;
         }
 
@@ -409,7 +410,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         if (!(expr.getType().equals("bool"))) {
             int line = ctx.KW_WHILE().getSymbol().getLine();
-            System.err.println("WARNING:" + line + ": while condition expression type should be a bool type!");
+            Log.warning(line + ": while condition expression type should be a bool type!");
         }
 
         stmt = visit(ctx.blockStmt());
@@ -439,7 +440,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             } else {
                 line = ctx.IDENTIFIER().getSymbol().getLine();
             }
-            System.err.println("ERROR:" + line + ": variable " + "'" + varId + "' is not defined before assignment!");
+            Log.error(line + ": variable " + "'" + varId + "' is not defined before assignment!");
         }
 
         String assignmentOperator = ctx.assignmentOperator().getText();
@@ -461,7 +462,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 Expression expr = exprVisitor.visit(ctx.arrayIndexAccessorSetter().arrayIndexSpecifier(i).expression());
                 if (!TypeResolver.isIntType(expr.getType())) {
                     int line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
-                    System.err.println("ERROR:" + line + ": Array index specifier setter must be 'int' type!");
+                    Log.error(line + ": Array index specifier setter must be 'int' type!");
                 }
                 exprs.add(expr);
             }
@@ -496,8 +497,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         Statement exprStmt = visit(ctx.expressionStmt());
 
         String exprType = ((ExpressionStmt)exprStmt).getType();
-        System.out.println("var def lhs:" + type);
-        System.out.println("var def rhs:" + exprType);
+        Log.debug("var def lhs:" + type);
+        Log.debug("var def rhs:" + exprType);
         TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
 
         VariableDefinition vd = new VariableDefinition(typeInfo, varId, exprStmt);
