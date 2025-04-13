@@ -1,5 +1,7 @@
 package tile.app;
 
+import tile.Program;
+
 public class Log {
     // ANSI color codes
     private static final String RESET = "\u001B[0m";
@@ -24,6 +26,7 @@ public class Log {
      */
     public static void error(String message) {
         System.err.println(RED + "ERROR: " + RESET + message);
+        Program.setError();
     }
 
     /**

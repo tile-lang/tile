@@ -26,9 +26,20 @@ public class Program extends Generator {
     public static Map<String, VariableDefinition> globalVariableSymbols = new HashMap<>();
     public static Deque<Statement> parentStack = new ArrayDeque<>();
 
+    private static boolean _err;
+
     public Program() {
         super();
+        _err = false;
         statements = new ArrayList<Statement>();
+    }
+
+    public static void setError() {
+        _err = true;
+    }
+
+    public static boolean getError() {
+        return _err;
     }
 
     public void addStatement(Statement stmt) {

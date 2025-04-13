@@ -10,6 +10,23 @@ public class CmdArgs {
         String inputFile = null;
         String outputFile = "out.tasm";
         String module = null;
+        boolean gen_tasm = false;
+        boolean debug = false;
+    }
+
+    private static void tileUsage() {
+        Log.info("Tile Usage:\n\ttile <input> [-o <output>] [-l <dynamic-library>]\n\t[-h]\n\t[-v | --v | -version | --version]\n\t[-gen-tasm]");
+    }
+
+    private static void tileHelp() {
+        Log.info("Tile Usage:\n" +
+         "\ttile <input> [-o <output>] [-l <dynamic-library>] [-h] [-v | --v | -version | --version] [-gen-tasm]\n" +
+         "\t<input>             : Input Tile source file (required)\n" +
+         "\t-o <output>        : Output binary file name (default: based on input)\n" +
+         "\t-l <dynamic-library> : Link with specified dynamic library\n" +
+         "\t-h                 : Show this help message\n" +
+         "\t-v, --v, -version, --version : Show version information\n" +
+         "\t-gen-tasm          : Keep the intermediate TASM file");
     }
 
     public static ArgResults parseCmdArgs(String[] args) {
@@ -28,15 +45,26 @@ public class CmdArgs {
                     if (iterator.hasNext()) {
                         results.outputFile = iterator.next();
                     } else {
-                        throw new IllegalArgumentException("Error: Missing output file after -o");
+                        Log.error("Missing output file after -o");
+                        tileUsage();
+                        throw new IllegalArgumentException();
                     }
                     break;
                 case "-l":
                     if (iterator.hasNext()) {
                         results.module = iterator.next();
                     } else {
-                        throw new IllegalArgumentException("Error: Missing module name after -l");
+                        Log.error("Missing module name after -l");
+                        tileUsage();
+                        throw new IllegalArgumentException();
                     }
+                    break;
+                case "-gen-tasm":
+                    results.gen_tasm = true;
+                    break;
+                case "-dev":
+                case "--dev":
+                    results.debug = true;
                     break;
                 case "-h":
                     showHelp = true;
@@ -51,14 +79,15 @@ public class CmdArgs {
                     if (results.inputFile == null) {
                         results.inputFile = arg;
                     } else {
-                        throw new IllegalArgumentException("Error: Multiple input files specified.");
+                        Log.error("Multiple input files specified.");
+                        throw new IllegalArgumentException();
                     }
                     break;
             }
         }
 
         if (showHelp) {
-            Log.info("Usage: tile <input> [-o <output>] [-l <dynamic-library>]\n [-h]\n [-v | --v | -version | --version]");
+            tileHelp();
             System.exit(0);
         }
 
@@ -68,7 +97,9 @@ public class CmdArgs {
         }
 
         if (results.inputFile == null) {
-            throw new IllegalArgumentException("Error: Input file is required.");
+            Log.error("Input file is required.");
+            tileUsage();
+            throw new IllegalArgumentException();
         }
 
         return results;
