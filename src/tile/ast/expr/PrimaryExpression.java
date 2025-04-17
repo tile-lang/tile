@@ -95,6 +95,13 @@ public class PrimaryExpression implements Expression {
         return generatedCode;
     }
 
+    String generateTasmForArray(String generatedCode) {
+        // we need to deref it to reach to the actual listing values on heap (gc_block->value which is the first component of gc_block)
+        generatedCode += "    load " + identifierTasmIdx + "\n";
+        generatedCode += "    deref ; deref array\n";
+        return generatedCode;
+    }
+
     private <T, E> T getKeyByValue(Map<T, E> map, E value) {
         for (Entry<T, E> entry : map.entrySet()) {
             if (Objects.equals(value, entry.getValue())) {
@@ -119,6 +126,8 @@ public class PrimaryExpression implements Expression {
             generatedCode = generateTasmForPrimitive(generatedCode);
         } else if (TypeResolver.isStringType(type)) {
             generatedCode = generateTasmForString(generatedCode);
+        } else if (TypeResolver.isArrayType(type)) {
+            generatedCode = generateTasmForArray(generatedCode);
         } else {
             generatedCode += "    load " + identifierTasmIdx + "\n";
         }

@@ -58,10 +58,8 @@ public class VariableAssignment implements Statement {
             generatedCode += "store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
         } else {
             generatedCode += "    load " + tasmIdx + "\n";
-            generatedCode += "    deref ; dereferance\n";
             generatedCode = indicies.get(0).generateTasm(generatedCode);
             generatedCode += "    push " + typeInfo.info_array.element_size + "\n";
-            generatedCode += "    mult\n";
             generatedCode += "    hset\n";
         }
 
