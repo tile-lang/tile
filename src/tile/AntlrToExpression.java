@@ -401,7 +401,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             Expression left = visit(exprs.get(0));
             Expression right = visit(exprs.get(1));
             String operator = ctx.getChild(1).getText();
-            return new ShiftExpression(left, operator, right, new TypeInfoBinopInt());
+            return new ShiftExpression(left, operator, right, TypeResolver.resolveBinopShiftType(left.getType(), right.getType()));
         } else if (exprs.size() == 1) {
             return visit(exprs.get(0));
         }
