@@ -261,12 +261,16 @@ public class TypeResolver {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
             ti.result_type = "int";
-        } else if (lhs.equals("bool") || rhs.equals("bool")) {
+        } else if (lhs.equals("char") && rhs.equals("char")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "char";
+        } else if (lhs.equals("bool") && rhs.equals("bool")) {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
             ti.result_type = "bool";
         } else {
-            // err handling could be neccesarry
+            Log.error("try casting one type to another if possible " + "(" + lhs + ")" + rhs);
         }
 
         TypeInfoBinopBool tb = new TypeInfoBinopBool();

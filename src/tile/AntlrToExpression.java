@@ -444,8 +444,13 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                     Log.error("'++' and '--' operators had to be used with an identifier!");
                 }
             }
+        } else {
+            if (ctx.unaryOperator() != null) {
+                String unaryOp = ctx.unaryOperator().getText();
+                expr = visit(ctx.children.get(1));
+                return new UnaryExpression(unaryOp, expr);
+            }
         }
-        // TODO: handle IDENTIFIER and ++ | -- operators !!!
 
         return expr;
     }
