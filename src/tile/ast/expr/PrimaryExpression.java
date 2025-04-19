@@ -96,9 +96,9 @@ public class PrimaryExpression implements Expression {
     }
 
     String generateTasmForArray(String generatedCode) {
-        // we need to deref it to reach to the actual listing values on heap (gc_block->value which is the first component of gc_block)
+        // we need to deref it to reach to the actual listing values on heap (gc_block->value which is the first component of gc_block) IMPORTANT NOTE: this only for passing tile arrays to c functions that gets c arrays as parameter.
         generatedCode += "    load " + identifierTasmIdx + "\n";
-        generatedCode += "    deref ; deref array\n";
+        // generatedCode += "    deref ; deref array\n"; // NO NEED IT NORMALLY
         return generatedCode;
     }
 
