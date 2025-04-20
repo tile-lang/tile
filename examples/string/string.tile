@@ -1,7 +1,11 @@
+func print(str: string): void {
+    tasm {
+        "load 0",
+        "puts"
+    }
+}
 
 func main(argc: int): void {
-
-    a: string = "merhaba";
-    b: string = "merhaba";
-    c: string = "mer";
+    a: string = "Hello, world!";
+    print(a);
 }

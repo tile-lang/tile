@@ -56,6 +56,11 @@ KW_RETURN
 KW_NATIVE
     : 'native'
     ;
+
+KW_TASM
+    : 'tasm' -> pushMode(TasmMode)
+    ;
+
 KW_CINT8
     : 'ci8'
     ;
@@ -294,6 +299,10 @@ BOOL_LITERAL
     : 'true'
     | 'false'
     ;
+//
+//TASM_INSTRUCTION_LITERAL
+//    : '`' (~[`\\])* '`'
+//    ;
 
 STRING_LITERAL
     : '"' (EscSeq | ~["\\])* '"'
@@ -340,5 +349,23 @@ MULTI_LINE_COMMENT
     ;
 
 WHITE_SPACE
+    : [ \t\r\n]+ -> skip
+    ;
+
+mode TasmMode;
+
+TASM_STRING
+    : '"' ( ~["\\])* '"' -> type(STRING_LITERAL)
+    ;
+
+TASM_COMMA
+    : ',' -> type(PUNC_COMMA)
+    ;
+
+TASM_LBRACE: '{' -> type(PUNC_LEFTBRACE);
+
+TASM_RBRACE: '}' -> popMode, type(PUNC_RIGHTBRACE);
+
+TASM_WS
     : [ \t\r\n]+ -> skip
     ;
