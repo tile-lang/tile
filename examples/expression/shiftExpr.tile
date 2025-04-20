@@ -1,3 +1,5 @@
+func main(): void {
 x: int = 4;
 y: int = 4 << 2;
 z: int = 4 >> 1.2;
+}
