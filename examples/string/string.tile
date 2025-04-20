@@ -1,7 +1,6 @@
 
 func main(argc: int): void {
 
-    a: string = "merhaba";
-    b: string = "merhaba";
-    c: string = "mer";
+    a: int = 4;
+    
 }
