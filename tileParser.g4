@@ -36,6 +36,7 @@ localStatement
     | selectionStmt
     | funcDefStmt
     | returnStmt
+    | tasmBlock
     | blockStmt
     ;
 
@@ -78,7 +79,7 @@ primaryExpression
 
 objectLiteralExpression
     :
-    '{' ( objectLiteralFieldAssignment (',' objectLiteralFieldAssignment)*)? ','? '}'
+    PUNC_LEFTBRACE ( objectLiteralFieldAssignment (PUNC_COMMA objectLiteralFieldAssignment)*)? PUNC_COMMA? PUNC_RIGHTBRACE
     ;
 
 objectLiteralFieldAssignment
@@ -107,8 +108,8 @@ arrayValuedInitializer
     ;
 
 arrayValuedInitializerElements
-    : expression (',' expression)*
-    | arrayValuedInitializer (',' arrayValuedInitializer)*
+    : expression (PUNC_COMMA expression)*
+    | arrayValuedInitializer (PUNC_COMMA arrayValuedInitializer)*
     ;
 
 arraySizedInitializer
@@ -132,9 +133,9 @@ arrayIndexAccessorSetter
     ;
 
 funcCallExpression
-    : IDENTIFIER '(' (expression)? (',' expression)* ')'
-    | primaryExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
-    | funcCallExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
+    : IDENTIFIER '(' (expression)? (PUNC_COMMA expression)* ')'
+    | primaryExpression '.' IDENTIFIER '(' (expression)? (PUNC_COMMA expression)* ')'
+    | funcCallExpression '.' IDENTIFIER '(' (expression)? (PUNC_COMMA expression)* ')'
     ;
 
 castExpression
@@ -269,19 +270,31 @@ ifStmt
     ;
 
 funcDefStmt
-    : KW_FUNC IDENTIFIER '(' (argument)? (',' argument)* ')' ':' typeName blockStmt
+    : KW_FUNC IDENTIFIER '(' (argument)? (PUNC_COMMA argument)* ')' ':' typeName blockStmt
     ;
 
 nativeFuncDeclStmt
-    : KW_NATIVE KW_FUNC IDENTIFIER '(' (cArgument)? (',' cArgument)* ')' ':' cTypeName ';'
+    : KW_NATIVE KW_FUNC IDENTIFIER '(' (cArgument)? (PUNC_COMMA cArgument)* ')' ':' cTypeName ';'
     ;
 
 returnStmt
     : KW_RETURN expressionStmt
     ;
 
+tasmBlock
+    : KW_TASM PUNC_LEFTBRACE tasmInstructions PUNC_RIGHTBRACE
+    ;
+
+tasmInstructions
+    : (tasmLine)? (PUNC_COMMA tasmLine)*
+    ;
+
+tasmLine
+    : STRING_LITERAL
+    ;
+
 blockStmt
-    : '{' localStatements? '}'
+    : PUNC_LEFTBRACE localStatements? PUNC_RIGHTBRACE
     ;
 
 argument
@@ -336,7 +349,7 @@ typeDefinition
     ;
 
 structDefinition
-    : '{' fieldDefinition* '}'
+    : PUNC_LEFTBRACE fieldDefinition* PUNC_RIGHTBRACE
     ;
 
 fieldDefinition

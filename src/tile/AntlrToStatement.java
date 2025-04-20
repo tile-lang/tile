@@ -24,6 +24,7 @@ import gen.antlr.tile.tileParser.VariableAssignmentContext;
 import gen.antlr.tile.tileParser.VariableDeclerationContext;
 import gen.antlr.tile.tileParser.VariableDefinitionContext;
 import gen.antlr.tile.tileParser.VariableStmtContext;
+import gen.antlr.tile.tileParser.TasmBlockContext;
 import gen.antlr.tile.tileParser.WhileStmtContext;
 import gen.antlr.tile.tileParser.TypeDefinitionContext;
 import gen.antlr.tile.tileParser.StructDefinitionContext;
@@ -400,6 +401,19 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     public Statement visitSelectionStmt(SelectionStmtContext ctx) {
         // TODO Auto-generated method stub
         return super.visitSelectionStmt(ctx);
+    }
+
+    @Override
+    public Statement visitTasmBlock(TasmBlockContext ctx) {
+        List<String> lines = new ArrayList<>();
+
+        if (ctx.tasmInstructions() != null) {
+            for (int i = 0; i < ctx.tasmInstructions().tasmLine().size(); i++) {
+                lines.add(ctx.tasmInstructions().tasmLine().get(i).getText());
+            }
+        }
+
+        return new TasmStmt(lines);
     }
 
     @Override
