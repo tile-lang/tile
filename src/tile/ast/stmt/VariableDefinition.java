@@ -52,7 +52,7 @@ public class VariableDefinition implements Statement, Variable {
             }
 
             if (isGlobal) {
-                generatedCode += "gstore " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+                generatedCode += "    gstore " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
             } else {
                 generatedCode += "    store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
             }

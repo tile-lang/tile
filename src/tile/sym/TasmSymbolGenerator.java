@@ -69,7 +69,6 @@ public class TasmSymbolGenerator {
             } catch (Exception e) {
                 try {
                     String tasmGlobalVarSym = TasmSymbolGenerator.tasmGenGlobalVariableName(identifier);
-                    Log.info(tasmGlobalVarSym);
                     tasmIdx = Program.globalVariableSymbols.get(tasmGlobalVarSym).getTasmIdx();
                     varType.append(Program.globalVariableSymbols.get(tasmGlobalVarSym).getType());
                     isGlobal.set(true);
@@ -81,7 +80,6 @@ public class TasmSymbolGenerator {
         } else {
             try {
                 String tasmGlobalVarSym = TasmSymbolGenerator.tasmGenGlobalVariableName(identifier);
-                Log.info(tasmGlobalVarSym);
                 tasmIdx = Program.globalVariableSymbols.get(tasmGlobalVarSym).getTasmIdx();
                 varType.append(Program.globalVariableSymbols.get(tasmGlobalVarSym).getType());
                 isGlobal.set(true);
