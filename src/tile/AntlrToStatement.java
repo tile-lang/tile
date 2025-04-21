@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -14,6 +15,7 @@ import gen.antlr.tile.tileParser.ForStmtContext;
 import gen.antlr.tile.tileParser.ForUpdateContext;
 import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
+import gen.antlr.tile.tileParser.GlobalStatementContext;
 import gen.antlr.tile.tileParser.IfStmtContext;
 import gen.antlr.tile.tileParser.LoopStmtContext;
 import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
@@ -160,11 +162,11 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         
         for (int i = 0; i < ctx.localStatements().localStatement().size(); i++) {
             Statement stmt = visit(ctx.localStatements().localStatement(i));
-            if (stmt instanceof VariableDefinition) {
+            if (stmt instanceof Variable) {
                 variableTasmId = func.getTasmVarIdx();
-                ((VariableDefinition)stmt).setTasmIdx(variableTasmId);
+                ((Variable)stmt).setTasmIdx(variableTasmId);
 
-                String varId = ((VariableDefinition)stmt).getVarId();
+                String varId = ((Variable)stmt).getVarId();
                 int blockId = blockStmt.getBlockId();
                 String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
 
@@ -173,21 +175,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                     Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
 
-                blockStmt.variableSymbols.put(tasmVarSym, ((VariableDefinition)stmt));
-            } else if (stmt instanceof VariableDecleration) {
-                variableTasmId = func.getTasmVarIdx();
-                ((VariableDecleration)stmt).setTasmIdx(variableTasmId);
-
-                String varId = ((VariableDecleration)stmt).getVarId();
-                int blockId = blockStmt.getBlockId();
-                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
-
-                if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
-                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
-                }
-
-                blockStmt.variableSymbols.put(tasmVarSym, ((VariableDecleration)stmt));
+                blockStmt.variableSymbols.put(tasmVarSym, ((Variable)stmt));
             }
             blockStmt.addStatement(stmt);
         }
@@ -445,8 +433,10 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         StringBuilder varType = new StringBuilder();
         int tasmIdx = -1;
+        AtomicBoolean isGlobal = new AtomicBoolean(false);
         try {
-            tasmIdx = TasmSymbolGenerator.identifierScopeFind(varId, varType);
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(varId, varType, isGlobal);
+            // TODO: use isGlobal!!!
         } catch (Exception e) {
             int line = -1;
             if (ctx.arrayIndexAccessorSetter() != null) {
@@ -486,6 +476,9 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         }
 
         VariableAssignment va = new VariableAssignment(typeInfo, varId, assignmentOperator, exprs, exprStmt, tasmIdx);
+        if (isGlobal.get()) {
+            va.setAsGlobal();
+        }
 
         return va;
     }
@@ -500,6 +493,13 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         String varId = ctx.IDENTIFIER().getText();
 
         VariableDecleration v_dec = new VariableDecleration(type, varId);
+
+        // if it is global
+        if (ctx.parent.parent instanceof GlobalStatementContext) {
+            int variableTasmId = Program.getTasmVarIdx();
+            v_dec.setTasmIdx(variableTasmId);
+            v_dec.setAsGlobal();
+        }
 
         return v_dec;
     }
@@ -516,6 +516,13 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         TypeInfoVariableDef typeInfo = TypeResolver.resolveVariableDefType(type, exprType);
 
         VariableDefinition vd = new VariableDefinition(typeInfo, varId, exprStmt);
+
+        // if it is global
+        if (ctx.parent.parent instanceof GlobalStatementContext) {
+            int variableTasmId = Program.getTasmVarIdx();
+            vd.setTasmIdx(variableTasmId);
+            vd.setAsGlobal();
+        }
 
         return vd;
     }

@@ -1,6 +1,9 @@
 package tile.sym;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import tile.Program;
+import tile.app.Log;
 import tile.ast.stmt.BlockStmt;
 
 public class TasmSymbolGenerator {
@@ -23,7 +26,7 @@ public class TasmSymbolGenerator {
         return GLOBAL_VARIABLE_SYM_PREFIX + VARIABLE_SYM_PREFIX + varId;
     }
 
-    public static int identifierScopeFind(final String identifier, StringBuilder varType) throws Exception {
+    public static int identifierScopeFind(final String identifier, StringBuilder varType, AtomicBoolean isGlobal) throws Exception {
         BlockStmt blck = null;               
         int counter = 0;
         while (blck == null) {
@@ -36,37 +39,55 @@ public class TasmSymbolGenerator {
             counter++;
         }
 
-        int blockId = blck.getBlockId();
-        String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, identifier);
-
-        // FIXME: allow variable def outside functions!
-
-        counter = 0;
-        while (blck.variableSymbols.get(tasmVarSym) == null) {
-            int index  = (Program.blockStack.size() - 1) - counter;
-            if (index >= 0) {
-                // System.out.println("bid: " + blockId);
-                blck = Program.blockStack.get(index);
-                blockId = blck.getBlockId();
-                tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, identifier);
-            } else {
-                break;
-            }
-            counter++;
-        }
-
-
         int tasmIdx = -1;
         varType.setLength(0);
 
-        // TODO:
-        // if still cannot find the variable outer blocks look at the global scope
+        if (blck != null) {
+            int blockId = blck.getBlockId();
+            String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, identifier);
+    
+            // FIXME: allow variable def outside functions!
+    
+            counter = 0;
+            while (blck.variableSymbols.get(tasmVarSym) == null) {
+                int index  = (Program.blockStack.size() - 1) - counter;
+                if (index >= 0) {
+                    // System.out.println("bid: " + blockId);
+                    blck = Program.blockStack.get(index);
+                    blockId = blck.getBlockId();
+                    tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, identifier);
+                } else {
+                    break;
+                }
+                counter++;
+            }
 
-        try {
-            tasmIdx = blck.variableSymbols.get(tasmVarSym).getTasmIdx();
-            varType.append(blck.variableSymbols.get(tasmVarSym).getType());
-        } catch (Exception e) {
-            throw new RuntimeException();
+            try {
+                tasmIdx = blck.variableSymbols.get(tasmVarSym).getTasmIdx();
+                varType.append(blck.variableSymbols.get(tasmVarSym).getType());
+                isGlobal.set(false);
+            } catch (Exception e) {
+                try {
+                    String tasmGlobalVarSym = TasmSymbolGenerator.tasmGenGlobalVariableName(identifier);
+                    Log.info(tasmGlobalVarSym);
+                    tasmIdx = Program.globalVariableSymbols.get(tasmGlobalVarSym).getTasmIdx();
+                    varType.append(Program.globalVariableSymbols.get(tasmGlobalVarSym).getType());
+                    isGlobal.set(true);
+                } catch (Exception e2) {
+                    throw new RuntimeException();
+                }
+            }
+
+        } else {
+            try {
+                String tasmGlobalVarSym = TasmSymbolGenerator.tasmGenGlobalVariableName(identifier);
+                Log.info(tasmGlobalVarSym);
+                tasmIdx = Program.globalVariableSymbols.get(tasmGlobalVarSym).getTasmIdx();
+                varType.append(Program.globalVariableSymbols.get(tasmGlobalVarSym).getType());
+                isGlobal.set(true);
+            } catch (Exception e2) {
+                throw new RuntimeException();
+            }
         }
 
         return tasmIdx;

@@ -9,11 +9,13 @@ public class VariableDefinition implements Statement, Variable {
     private String varId;
     private int tasmIdx;
     private Statement exprStmt;
+    private boolean isGlobal;
 
     public VariableDefinition(TypeInfoVariableDef typeInfo, String varId, Statement exprStmt) {
         this.typeInfo = typeInfo;
         this.varId = varId;
         this.exprStmt = exprStmt;
+        isGlobal = false;
     }
 
     public void setTasmIdx(int idx) {
@@ -49,10 +51,19 @@ public class VariableDefinition implements Statement, Variable {
                 }
             }
 
-            generatedCode += "    store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+            if (isGlobal) {
+                generatedCode += "gstore " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+            } else {
+                generatedCode += "    store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+            }
         }
 
         return generatedCode;
+    }
+
+    @Override
+    public void setAsGlobal() {
+        isGlobal = true;
     }
 
 }
