@@ -20,7 +20,6 @@ public class AntlrToProgram extends tileParserBaseVisitor<Program>{
             if (stmt instanceof Variable) {
                 
                 String globalTasmVarId = TasmSymbolGenerator.tasmGenGlobalVariableName(((Variable)stmt).getVarId());
-                Log.info("globalTasmVarId:" + globalTasmVarId);
 
                 Program.globalVariableSymbols.put(globalTasmVarId, ((Variable)stmt));
             }

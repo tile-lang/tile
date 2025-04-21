@@ -116,7 +116,6 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 }
 
                 expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx, 0);
-                Log.info(identifier + ": " + isGlobal.get());
                 if (isGlobal.get() == true) {
                     ((PrimaryExpression)expr).setAsGlobal();
                 }
