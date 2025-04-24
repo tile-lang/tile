@@ -25,6 +25,7 @@ import gen.antlr.tile.tileParser.UnaryExpressionContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
@@ -106,14 +107,18 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 String identifier = ctx.IDENTIFIER().getText();
                 StringBuilder varType = new StringBuilder();
                 int tasmIdx = -1;
+                AtomicBoolean isGlobal = new AtomicBoolean(false);
                 try {
-                    tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType);
+                    tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType, isGlobal);
                 } catch (Exception e) {
                     int line = ctx.IDENTIFIER().getSymbol().getLine();
                     Log.error(line + ": variable " + "'" + identifier + "' is not defined before use!");
                 }
 
                 expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx, 0);
+                if (isGlobal.get() == true) {
+                    ((PrimaryExpression)expr).setAsGlobal();
+                }
 
             }
         } else if (count == 3 && ctx.getChild(0).getText().equals("(") && ctx.getChild(2).getText().equals(")")) {
@@ -444,8 +449,13 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                     Log.error("'++' and '--' operators had to be used with an identifier!");
                 }
             }
+        } else {
+            if (ctx.unaryOperator() != null) {
+                String unaryOp = ctx.unaryOperator().getText();
+                expr = visit(ctx.children.get(1));
+                return new UnaryExpression(unaryOp, expr);
+            }
         }
-        // TODO: handle IDENTIFIER and ++ | -- operators !!!
 
         return expr;
     }
@@ -481,8 +491,10 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         String identifier = ctx.IDENTIFIER().getText();
         StringBuilder varType = new StringBuilder();
         int tasmIdx = -1;
+        AtomicBoolean isGlobal = new AtomicBoolean(false);
         try {
-            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType);
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType, isGlobal);
+            // TODO: use isGlobal!!!
         } catch (Exception e) {
             int line = ctx.IDENTIFIER().getSymbol().getLine();
             Log.error(line + ": variable " + "'" + identifier + "' is not defined before use!");

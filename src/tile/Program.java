@@ -14,7 +14,7 @@ import tile.ast.base.Statement;
 import tile.ast.stmt.BlockStmt;
 import tile.ast.stmt.FunctionDefinition;
 import tile.ast.stmt.NativeFunctionDecl;
-import tile.ast.stmt.VariableDefinition;
+import tile.ast.stmt.Variable;
 import tile.app.Log;
 import tile.ast.base.Generator;
 
@@ -23,7 +23,8 @@ public class Program extends Generator {
     public static Map<String, FunctionDefinition> funcDefSymbols = new HashMap<>();
     public static Map<String, NativeFunctionDecl> nativeFuncDeclSymbols = new HashMap<>();
     public static List<BlockStmt> blockStack = new ArrayList<>();
-    public static Map<String, VariableDefinition> globalVariableSymbols = new HashMap<>();
+    private static int tasmGlobalVarIdx = 0;
+    public static Map<String, Variable> globalVariableSymbols = new HashMap<>();
     public static Deque<Statement> parentStack = new ArrayDeque<>();
 
     private static boolean _err;
@@ -47,18 +48,32 @@ public class Program extends Generator {
     }
 
     private String generateProgram(String generatedCode) {
+        List<Statement> globalVariables = new ArrayList<Statement>();
+
         generatedCode += "; program begins\n";
         generatedCode += "jmp __start\n";
         generatedCode += "\n";
 
         for (int i = 0; i < statements.size(); i++) {
             Statement stmt = statements.get(i);
-            if (stmt != null)
-                generatedCode = stmt.generateTasm(generatedCode);
+            if (stmt != null) {
+                if (stmt instanceof Variable) {
+                    globalVariables.add(stmt);
+                } else {
+                    generatedCode = stmt.generateTasm(generatedCode);
+                }
+            }
         }
 
         generatedCode += "__start:\n";
-        generatedCode += "\n";
+        generatedCode += "; global variables\n";
+        for (int i = 0; i < globalVariables.size(); i++) {
+            Statement stmt = globalVariables.get(i);
+            if (stmt != null) {
+                generatedCode = stmt.generateTasm(generatedCode);
+            }
+        }
+        generatedCode += "\n\n";
         generatedCode += "push 0 ; argc\n"; // for simulating argc and argv for now
         // generatedCode += "push 0 ; argv\n";
         generatedCode += "call func_main_\n";
@@ -101,6 +116,10 @@ public class Program extends Generator {
         Log.debug(generatedCode);
         // write to a file
         writeOutput(outputPath);
+    }
+
+    public static int getTasmVarIdx() {
+        return tasmGlobalVarIdx++;
     }
     
 }

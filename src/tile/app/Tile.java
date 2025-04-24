@@ -81,7 +81,8 @@ public class Tile {
 
             parser = new tileParser(tokens);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.error(filePath + " file cannot found!");
+            System.exit(2);
         }
 
         return parser;

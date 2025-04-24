@@ -90,6 +90,8 @@ unaryExpression
     : incDecOperator primaryExpression
     | primaryExpression incDecOperator
     | unaryOperator primaryExpression
+    | unaryOperator funcCallExpression
+    | unaryOperator castExpression
     ;
 
 incDecOperator
