@@ -1,8 +1,6 @@
 package tile;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -12,7 +10,6 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.ForStmtContext;
-import gen.antlr.tile.tileParser.ForUpdateContext;
 import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.GlobalStatementContext;
@@ -28,11 +25,7 @@ import gen.antlr.tile.tileParser.VariableDefinitionContext;
 import gen.antlr.tile.tileParser.VariableStmtContext;
 import gen.antlr.tile.tileParser.TasmBlockContext;
 import gen.antlr.tile.tileParser.WhileStmtContext;
-import gen.antlr.tile.tileParser.TypeDefinitionContext;
-import gen.antlr.tile.tileParser.StructDefinitionContext;
-import gen.antlr.tile.tileParser.FieldDefinitionContext;
 import gen.antlr.tile.tileParser.ForInitialContext;
-import gen.antlr.tile.tileParser.TypeUnionContext;
 import gen.antlr.tile.tileParserBaseVisitor;
 import tile.app.Log;
 import tile.ast.base.*;
@@ -40,7 +33,6 @@ import tile.ast.stmt.*;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
-import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoRetStmt;
 import tile.ast.types.TypeResolver.TypeInfoVariableDef;
 import tile.sym.TasmSymbolGenerator;
@@ -102,7 +94,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
                 blockStmt.variableSymbols.put(tasmVarSym, vd);
             }
@@ -128,7 +121,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
 
                 if (init instanceof VariableDefinition) {
@@ -172,7 +166,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
 
                 blockStmt.variableSymbols.put(tasmVarSym, ((Variable)stmt));
@@ -230,7 +225,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         if (!(((ExpressionStmt)condition).getType().equals("bool"))) {
             int line = ctx.KW_FOR().getSymbol().getLine();
-            System.err.println("WARNING:" + line + ": for condition expression type should be a bool type!");
+            int col = ctx.KW_FOR().getSymbol().getCharPositionInLine();
+            Log.warning(line + ":" + col + ": for condition expression type should be a bool type!");
         }
 
         AntlrToExpression exprVisitor = new AntlrToExpression();
@@ -332,7 +328,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         if (!(expr.getType().equals("bool"))) {
             int line = ctx.KW_IF().getSymbol().getLine();
-            System.err.println("WARNING:" + line + ": if condition expression type should be a bool type!");
+            int col = ctx.KW_IF().getSymbol().getCharPositionInLine();
+            Log.warning(line + ":" + col + ": if condition expression type should be a bool type!");
         }
 
         stmt = visit(ctx.blockStmt(0));
@@ -369,7 +366,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         }
         if (parent == null) {
             int line = ctx.KW_RETURN().getSymbol().getLine();
-            Log.error(line + ": " + "return statement cannot be used outside a function definiton!");
+            int col = ctx.KW_RETURN().getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": return statement cannot be used outside a function definiton!");
             return null;
         }
 
@@ -412,7 +410,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         if (!(expr.getType().equals("bool"))) {
             int line = ctx.KW_WHILE().getSymbol().getLine();
-            Log.warning(line + ": while condition expression type should be a bool type!");
+            int col = ctx.KW_WHILE().getSymbol().getCharPositionInLine();
+            Log.warning(line + ":" + col + ": while condition expression type should be a bool type!");
         }
 
         stmt = visit(ctx.blockStmt());
@@ -439,12 +438,15 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             // TODO: use isGlobal!!!
         } catch (Exception e) {
             int line = -1;
+            int col = -1;
             if (ctx.arrayIndexAccessorSetter() != null) {
                 line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
+                col = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getCharPositionInLine();
             } else {
                 line = ctx.IDENTIFIER().getSymbol().getLine();
+                col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
             }
-            Log.error(line + ": variable " + "'" + varId + "' is not defined before assignment!");
+            Log.error(line + ":" + col + ": variable " + "'" + varId + "' is not defined before assignment!");
         }
 
         String assignmentOperator = ctx.assignmentOperator().getText();
@@ -466,7 +468,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 Expression expr = exprVisitor.visit(ctx.arrayIndexAccessorSetter().arrayIndexSpecifier(i).expression());
                 if (!TypeResolver.isIntType(expr.getType())) {
                     int line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": Array index specifier setter must be 'int' type!");
+                    int col = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": Array index specifier setter must be 'int' type!");
                 }
                 exprs.add(expr);
             }

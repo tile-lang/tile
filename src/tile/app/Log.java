@@ -20,38 +20,42 @@ public class Log {
         isDebugMode = debugMode;
     }
 
-    /**
-     * Prints an error message with red ERROR prefix
-     * @param message The error message to print
-     */
+    // --- f-postfix methods ---
+
+    public static String errorf(String message) {
+        return RED + "ERROR: " + RESET + message;
+    }
+
+    public static String warningf(String message) {
+        return YELLOW + "WARNING: " + RESET + message;
+    }
+
+    public static String debugf(String message) {
+        return BLUE + "DEBUG: " + RESET + message;
+    }
+
+    public static String infof(String message) {
+        return message;
+    }
+
+    // --- printing methods ---
+
     public static void error(String message) {
-        System.err.println(RED + "ERROR: " + RESET + message);
+        System.err.println(errorf(message));
         Program.setError();
     }
 
-    /**
-     * Prints a warning message with yellow WARNING prefix
-     * @param message The warning message to print
-     */
     public static void warning(String message) {
-        System.out.println(YELLOW + "WARNING: " + RESET + message);
+        System.out.println(warningf(message));
     }
 
-    /**
-     * Prints a debug message with blue DEBUG prefix if debug mode is enabled
-     * @param message The debug message to print
-     */
     public static void debug(String message) {
         if (isDebugMode) {
-            System.out.println(BLUE + "DEBUG: " + RESET + message);
+            System.out.println(debugf(message));
         }
     }
 
-    /**
-     * Prints a regular info message without prefix
-     * @param message The info message to print
-     */
     public static void info(String message) {
-        System.out.println(message);
+        System.out.println(infof(message));
     }
 }
