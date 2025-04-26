@@ -1,6 +1,9 @@
 import ".\examples\string\string.tile";
 
+global_a: string = "Hello, world!\n";
+
 func main(argc: int): void {
-    a: string = "Hello, world!\n";
-    print(a);
+
+    print(global_a);
+    print(global_b);
 }

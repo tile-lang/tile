@@ -60,23 +60,44 @@ public class Program extends Generator {
     }
 
     private String generateProgram(String generatedCode) {
+        List<Statement> globalVariables = new ArrayList<Statement>();
+
         if (!isImportedFile) {
             generatedCode += "; program begins\n";
-            generatedCode += "jmp __start\n\n";
+            generatedCode += "jmp __start\n";
+            generatedCode += "\n";
         }
 
-        for (Statement stmt : statements) {
-            if (stmt != null)
+        for (int i = 0; i < statements.size(); i++) {
+            Statement stmt = statements.get(i);
+            if (stmt != null) {
+                if (stmt instanceof Variable) {
+                    globalVariables.add(stmt);
+                } else {
+                    generatedCode = stmt.generateTasm(generatedCode);
+                }
+            }
+        }
+
+        if(!isImportedFile) {
+        generatedCode += "__start:\n";
+        }
+        generatedCode += "; global variables\n";
+        for (int i = 0; i < globalVariables.size(); i++) {
+            Statement stmt = globalVariables.get(i);
+            if (stmt != null) {
                 generatedCode = stmt.generateTasm(generatedCode);
+            }
         }
 
         if (!isImportedFile) {
-            generatedCode += "__start:\n\n";
-            generatedCode += "push 0 ; argc\n";
-            generatedCode += "call func_main_\n\n";
+            generatedCode += "\n\n";
+            generatedCode += "push 0 ; argc\n"; // for simulating argc and argv for now
+            // generatedCode += "push 0 ; argv\n";
+            generatedCode += "call func_main_\n";
+            generatedCode += "\n";
             generatedCode += "hlt\n";
         }
-
         return generatedCode;
     }
 
