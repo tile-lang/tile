@@ -44,7 +44,6 @@ import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.ShiftExpression;
 import tile.ast.expr.UnaryExpression;
-import tile.ast.stmt.ForStmt;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
@@ -112,7 +111,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                     tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType, isGlobal);
                 } catch (Exception e) {
                     int line = ctx.IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + identifier + "' is not defined before use!");
+                    int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": variable " + "'" + identifier + "' is not defined before use!");
                 }
 
                 expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx, 0);
@@ -261,6 +261,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         String funcId = ctx.IDENTIFIER().getText();
         TypeFuncCall type = new TypeFuncCall();
         int line = ctx.IDENTIFIER().getSymbol().getLine();
+        int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
 
         boolean is_native = false;
 
@@ -274,7 +275,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 type.result_type = Program.nativeFuncDeclSymbols.get(funcId).getReturnType();
                 is_native = true;
             } catch (Exception e) {
-                Log.error(line + ": function " + funcId + " is not defined before called.");
+                Log.error(line + ":" + col + ": function " + funcId + " is not defined before called.");
             }
         }
 
@@ -288,7 +289,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         // TODO: check nativeness
         if (ctx.primaryExpression() == null && ctx.funcCallExpression() == null) {
             if (arg_size != ctx.expression().size()) {
-                Log.error(line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " +ctx.expression().size());
+                Log.error(line + ":" + col + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " +ctx.expression().size());
                 return null;
             }
     
@@ -298,7 +299,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             }
         } else {
             if (arg_size != ctx.expression().size() + 1) {
-                Log.error(line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " + (ctx.expression().size() + 1));
+                Log.error(line + ":" + col + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " + (ctx.expression().size() + 1));
                 return null;
             }
             if (ctx.primaryExpression() != null) {
@@ -345,7 +346,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
             if (!lhs_type.equals("bool") || !rhs_type.equals("bool")) {
                 int line = ctx.stop.getLine();
-                Log.warning(line + ": logical expressions type should be a bool type!");
+                int col = ctx.stop.getCharPositionInLine();
+                Log.warning(line + ":" + col + ": logical expressions type should be a bool type!");
             }
             TypeInfoLogicalBinop type = TypeResolver.resolveBinopLogicalType(lhs_type, rhs_type);
             left = new LogicalExpression(left, operator, right, type);
@@ -443,10 +445,10 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 String incDecOp = ctx.incDecOperator().getText();
                 if (ctx.primaryExpression().IDENTIFIER() != null) {
                     if (!(type.equals("int") || type.equals("float"))) {
-                        Log.error("'++' and '--' operators cannot go before any non-numeric type!");
+                        Log.error("'" + incDecOp + "' operator cannot go before any non-numeric type!");
                     }
                 } else {
-                    Log.error("'++' and '--' operators had to be used with an identifier!");
+                    Log.error("'" + incDecOp + " operator had to be used with an identifier!");
                 }
             }
         } else {
@@ -470,7 +472,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             String sizeExprType = expr.getType();
             if (!sizeExprType.equals("int")) {
                 int line = ctx.primaryTypeName().getStop().getLine();
-                Log.error(line + "Array sized initializer must be an 'int' type!");
+                int col = ctx.primaryTypeName().getStop().getCharPositionInLine();
+                Log.error(line + ":" + col + ": Array sized initializer must be an 'int' type!");
             }
             arrSizes.add(expr);
         }
@@ -497,7 +500,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             // TODO: use isGlobal!!!
         } catch (Exception e) {
             int line = ctx.IDENTIFIER().getSymbol().getLine();
-            Log.error(line + ": variable " + "'" + identifier + "' is not defined before use!");
+            int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": variable " + "'" + identifier + "' is not defined before use!");
         }
 
         ctx.arrayIndexSpecifier().size();
@@ -509,7 +513,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             Expression expr = visit(ctx.arrayIndexSpecifier(i).expression());
             if (!TypeResolver.isIntType(expr.getType())) {
                 int line = ctx.IDENTIFIER().getSymbol().getLine();
-                Log.error(line + ": Array index specifier must be 'int' type!");
+                int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+                Log.error(line + ":" + col + ": Array index specifier must be 'int' type!");
             }
             exprs.add(expr);
         }

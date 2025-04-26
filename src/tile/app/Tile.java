@@ -7,6 +7,9 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 
 import org.antlr.v4.runtime.tree.ParseTree;
+
+import tile.err.TileErrorListener;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -37,7 +40,24 @@ public class Tile {
         Log.setDebugMode(results.debug);
 
         tileParser parser = createTileParser(results.inputFile);
+
+        // syntax errors
+        TileErrorListener errorListener = new TileErrorListener();
+        parser.removeErrorListeners();
+        parser.addErrorListener(errorListener);
+
+
         ParseTree ast = parser.program();
+
+        // check for syntax errors
+        if (errorListener.hasErrors()) {
+            System.out.println("Parsing failed with the following errors:");
+            for (String error : errorListener.getErrorMessages()) {
+                System.out.println(error);
+            }
+            System.exit(2);
+        }
+
         AntlrToProgram programVisitor = new AntlrToProgram();
         Program program = programVisitor.visit(ast);
 
@@ -82,7 +102,7 @@ public class Tile {
             parser = new tileParser(tokens);
         } catch (IOException e) {
             Log.error(filePath + " file cannot found!");
-            System.exit(2);
+            System.exit(3);
         }
 
         return parser;
