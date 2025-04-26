@@ -3,6 +3,7 @@ package tile;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -29,6 +30,9 @@ public class Program extends Generator {
 
     private static boolean _err;
 
+    private Path baseDirectory;
+    private boolean isImportedFile = false;
+
     public Program() {
         super();
         _err = false;
@@ -43,6 +47,14 @@ public class Program extends Generator {
         return _err;
     }
 
+    public void setBaseDirectory(Path baseDirectory) {
+        this.baseDirectory = baseDirectory;
+    }
+
+    public void markAsImported() {
+        this.isImportedFile = true;
+    }
+
     public void addStatement(Statement stmt) {
         statements.add(stmt);
     }
@@ -50,9 +62,11 @@ public class Program extends Generator {
     private String generateProgram(String generatedCode) {
         List<Statement> globalVariables = new ArrayList<Statement>();
 
-        generatedCode += "; program begins\n";
-        generatedCode += "jmp __start\n";
-        generatedCode += "\n";
+        if (!isImportedFile) {
+            generatedCode += "; program begins\n";
+            generatedCode += "jmp __start\n";
+            generatedCode += "\n";
+        }
 
         for (int i = 0; i < statements.size(); i++) {
             Statement stmt = statements.get(i);
@@ -65,7 +79,9 @@ public class Program extends Generator {
             }
         }
 
+        if(!isImportedFile) {
         generatedCode += "__start:\n";
+        }
         generatedCode += "; global variables\n";
         for (int i = 0; i < globalVariables.size(); i++) {
             Statement stmt = globalVariables.get(i);
@@ -73,13 +89,15 @@ public class Program extends Generator {
                 generatedCode = stmt.generateTasm(generatedCode);
             }
         }
-        generatedCode += "\n\n";
-        generatedCode += "push 0 ; argc\n"; // for simulating argc and argv for now
-        // generatedCode += "push 0 ; argv\n";
-        generatedCode += "call func_main_\n";
-        generatedCode += "\n";
-        generatedCode += "hlt\n";
 
+        if (!isImportedFile) {
+            generatedCode += "\n\n";
+            generatedCode += "push 0 ; argc\n"; // for simulating argc and argv for now
+            // generatedCode += "push 0 ; argv\n";
+            generatedCode += "call func_main_\n";
+            generatedCode += "\n";
+            generatedCode += "hlt\n";
+        }
         return generatedCode;
     }
 
