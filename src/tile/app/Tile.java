@@ -84,7 +84,7 @@ public class Tile {
         }
     }
 
-    private static tileParser createTileParser(String filePath) {
+    public static tileParser createTileParser(String filePath) {
         tileParser parser = null;
         
         try {

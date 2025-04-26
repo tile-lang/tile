@@ -21,6 +21,7 @@ globalStatements
 globalStatement
     : variableStmt
     | funcDefStmt
+    | importStmt
     | nativeFuncDeclStmt
     | typeDefinition
     ;
@@ -41,7 +42,7 @@ localStatement
     ;
 
 expressionStmt
-    : expression? ';'
+    : expression? PUNC_SEMI
     ;
 
 expression
@@ -220,8 +221,8 @@ variableStmt
     ;
 
 variableDecleration
-    : IDENTIFIER ':' typeName ';'
-    | typeName IDENTIFIER ';'
+    : IDENTIFIER ':' typeName PUNC_SEMI
+    | typeName IDENTIFIER PUNC_SEMI
     ;
 
 variableDefinition
@@ -275,8 +276,16 @@ funcDefStmt
     : KW_FUNC IDENTIFIER '(' (argument)? (PUNC_COMMA argument)* ')' ':' typeName blockStmt
     ;
 
+importStmt
+    : KW_IMP importTarget PUNC_SEMI
+    ;
+
+importTarget
+    : STRING_LITERAL
+    ;
+
 nativeFuncDeclStmt
-    : KW_NATIVE KW_FUNC IDENTIFIER '(' (cArgument)? (PUNC_COMMA cArgument)* ')' ':' cTypeName ';'
+    : KW_NATIVE KW_FUNC IDENTIFIER '(' (cArgument)? (PUNC_COMMA cArgument)* ')' ':' cTypeName PUNC_SEMI
     ;
 
 returnStmt
@@ -347,7 +356,7 @@ cTypeName
 
 typeDefinition
     : KW_TYPE IDENTIFIER structDefinition
-    | KW_TYPE IDENTIFIER ':' typeUnion ';'
+    | KW_TYPE IDENTIFIER ':' typeUnion PUNC_SEMI
     ;
 
 structDefinition
@@ -355,8 +364,8 @@ structDefinition
     ;
 
 fieldDefinition
-    : IDENTIFIER ':' typeName ';'
-    | typeName IDENTIFIER ';'
+    : IDENTIFIER ':' typeName PUNC_SEMI
+    | typeName IDENTIFIER PUNC_SEMI
     ;
 
 typeUnion

@@ -1,9 +1,13 @@
 package tile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import gen.antlr.tile.tileParser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -15,6 +19,7 @@ import gen.antlr.tile.tileParser.FuncDefStmtContext;
 import gen.antlr.tile.tileParser.GlobalStatementContext;
 import gen.antlr.tile.tileParser.IfStmtContext;
 import gen.antlr.tile.tileParser.LoopStmtContext;
+import gen.antlr.tile.tileParser.ImportStmtContext;
 import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
@@ -27,6 +32,7 @@ import gen.antlr.tile.tileParser.TasmBlockContext;
 import gen.antlr.tile.tileParser.WhileStmtContext;
 import gen.antlr.tile.tileParser.ForInitialContext;
 import gen.antlr.tile.tileParserBaseVisitor;
+import tile.app.Tile;
 import tile.app.Log;
 import tile.ast.base.*;
 import tile.ast.stmt.*;
@@ -528,6 +534,27 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         }
 
         return vd;
+    }
+
+    @Override
+    public Statement visitImportStmt(ImportStmtContext ctx) {
+        String rawPath = ctx.importTarget().STRING_LITERAL().getText();
+        Path importPath = Paths.get(rawPath.replace("\"", ""));
+
+        if (!Files.exists(importPath)) {
+            Log.error("Failed to import: file not found: " + rawPath);
+        }
+
+        tileParser parser = Tile.createTileParser(importPath.toString());
+
+        tileParser.ProgramContext importedCtx = parser.program();
+        AntlrToProgram visitor = new AntlrToProgram();
+        Program importedProgram = visitor.visit(importedCtx);
+
+        importedProgram.setBaseDirectory(importPath.getParent());
+        importedProgram.markAsImported();
+
+        return new ImportStmt(importPath.toString(), importedProgram);
     }
 
     @Override
