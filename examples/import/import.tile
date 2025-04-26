@@ -1,0 +1,6 @@
+import ".\examples\string\string.tile";
+
+func main(argc: int): void {
+    a: string = "Hello, world!\n";
+    print(a);
+}

@@ -4,8 +4,3 @@ func print(str: string): void {
         "puts"
     }
 }
-
-func main(argc: int): void {
-    a: string = "Hello, world!";
-    print(a);
-}

@@ -53,14 +53,15 @@ KW_MATCH
 KW_RETURN
     : 'return'
     ;
+KW_IMP
+    : 'import' -> pushMode(ImportMode)
+    ;
 KW_NATIVE
     : 'native'
     ;
-
 KW_TASM
     : 'tasm' -> pushMode(TasmMode)
     ;
-
 KW_CINT8
     : 'ci8'
     ;
@@ -352,6 +353,20 @@ WHITE_SPACE
     : [ \t\r\n]+ -> skip
     ;
 
+mode ImportMode;
+
+IMPORT_STRING
+    : '"' ( ~["\\] | '\\' . )* '"' -> type(STRING_LITERAL)
+    ;
+
+IMPORT_SEMI
+    : ';' -> popMode, type(PUNC_SEMI)
+    ;
+
+IMPORT_WS
+    : [ \t\r\n]+ -> skip
+    ;
+
 mode TasmMode;
 
 TASM_STRING
@@ -362,9 +377,13 @@ TASM_COMMA
     : ',' -> type(PUNC_COMMA)
     ;
 
-TASM_LBRACE: '{' -> type(PUNC_LEFTBRACE);
+TASM_LBRACE
+    : '{' -> type(PUNC_LEFTBRACE)
+    ;
 
-TASM_RBRACE: '}' -> popMode, type(PUNC_RIGHTBRACE);
+TASM_RBRACE
+    : '}' -> popMode, type(PUNC_RIGHTBRACE)
+    ;
 
 TASM_WS
     : [ \t\r\n]+ -> skip
