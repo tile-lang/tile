@@ -1,6 +1,68 @@
+
+func print(str: string): void {
+
+    tasm {
+
+        "load 0",
+
+        "puts"    }
+
+}func printchar(c: char): void {
+
+    tasm {
+
+        "load 0",
+
+        "putc"    }
+
+}func print_number(num: int): void {
+
+    if (num == 0) {
+
+        print("0\n");
+
+        return;
+
+    }
+
+    if (num < 0) {
+
+        print("-");
+
+        num = -num;
+
+    }
+
+    buffer: char[] = char[10];
+
+        i: int = 0;
+
+    while (num > 0) {
+
+        buffer[i] = (num % 10) + (int)'0';
+
+        num = num / 10;
+
+        i = i + 1;
+
+    }
+
+    for (j: int = i - 1; j >= 0; j--) {
+
+        printchar(buffer[j]);
+
+    }    print("\n");
+
+}
+
+
 func main(argc: int): void {
     x: int = 4;
     y: int = 4 << 2;
-    z: int = 4 >> 1 + 2;
-    t: int = 4 << 2 * 2; 
+    z: int = 4.4 >> 1;
+    t: int = 4 << 2.2; 
+    print_number(x);
+    print_number(y);
+    print_number(z);
+    print_number(t);
 }
