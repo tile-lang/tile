@@ -25,14 +25,15 @@ public class UnaryExpression implements Expression {
             } else if (getType().equals("float")) {
                 generatedCode += "    push -1.0\n";
             }
-        }
-        generatedCode = innerExpr.generateTasm(generatedCode);
-        if (operator.equals("-")) {
+            generatedCode = innerExpr.generateTasm(generatedCode);
             if (getType().equals("int")) {
                 generatedCode += "    mult\n";
             } else if (getType().equals("float")) {
                 generatedCode += "    multf\n";
             }
+        } else if (operator.equals("!")) {
+            generatedCode = innerExpr.generateTasm(generatedCode);
+            generatedCode += "    not ; !\n";
         }
         return generatedCode;
     }

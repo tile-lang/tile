@@ -15,6 +15,7 @@ public class VariableAssignment implements Statement {
     private Statement exprStmt;
     String assignmentOperator;
     private List<Expression> indicies;
+    private boolean isGlobal;
 
     public VariableAssignment(TypeInfoVariableDef typeInfo, String varId, String assignmentOperator, List<Expression> indicies, Statement exprStmt, int tasmIdx) {
         this.typeInfo = typeInfo;
@@ -23,6 +24,7 @@ public class VariableAssignment implements Statement {
         this.tasmIdx = tasmIdx;
         this.assignmentOperator = assignmentOperator;
         this.indicies = indicies;
+        isGlobal = false;
     }
 
     public int getTasmIdx() {
@@ -55,13 +57,19 @@ public class VariableAssignment implements Statement {
 
         if (typeInfo.info_array == null) {
             generatedCode += "    ";
-            generatedCode += "store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+            if (isGlobal) {
+                generatedCode += "gstore " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+            } else {
+                generatedCode += "store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
+            }
         } else {
-            generatedCode += "    load " + tasmIdx + "\n";
-            generatedCode += "    deref ; dereferance\n";
+            if (isGlobal) {
+                generatedCode += "    gload " + tasmIdx + "\n";
+            } else {
+                generatedCode += "    load " + tasmIdx + "\n";
+            }
             generatedCode = indicies.get(0).generateTasm(generatedCode);
             generatedCode += "    push " + typeInfo.info_array.element_size + "\n";
-            generatedCode += "    mult\n";
             generatedCode += "    hset\n";
         }
 
@@ -70,5 +78,9 @@ public class VariableAssignment implements Statement {
     
     public String getVarId() {
         return varId;
+    }
+
+    public void setAsGlobal() {
+        isGlobal = true;
     }
 }

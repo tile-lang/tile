@@ -1,7 +1,14 @@
 package tile.ast.types;
 
+import java.util.*;
+
+import tile.app.Log;
+import tile.ast.stmt.TypeDefinition;
 
 public class TypeResolver {
+
+    public static final Map<String, TypeDefinition> userTypeDefs = new HashMap<>();
+
     public static class TypeInfoBinop {
         public String result_type = null;
         public String lhs_type = null;
@@ -85,6 +92,10 @@ public class TypeResolver {
 
     public static boolean isArrayType(String type) {
         return type.contains("[]");
+    }
+
+    public static boolean isUserDefinedType(String type) {
+        return userTypeDefs.containsKey(type);
     }
 
     // TODO: add boolean and har types as well
@@ -193,7 +204,7 @@ public class TypeResolver {
         String baseType = getBaseType(type);
         typeInfo.element_size = resolveArrayTypeSize(baseType);
 
-        System.out.println("Base TYPEEEE::: " + baseType);
+        Log.debug("Base TYPEEEE::: " + baseType);
 
         
         String reducedType = reduceDim(type, reducedDim);
@@ -205,8 +216,8 @@ public class TypeResolver {
     public static TypeInfoBinopBool resolveBinopBooleanType(String lhs, String rhs) {
         // TODO: add auto cast feature
         TypeInfoBinop ti = new TypeInfoBinop();
-        System.out.println("lhs:" + lhs);
-        System.out.println("rhs:" + rhs);
+        Log.debug("lhs:" + lhs);
+        Log.debug("rhs:" + rhs);
         if (lhs.equals("float") || rhs.equals("float")) {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
@@ -221,7 +232,7 @@ public class TypeResolver {
             ti.rhs_type = rhs;
             ti.result_type = "int";
         } else if (lhs.equals("bool") || rhs.equals("bool")) {
-            System.err.println("ERROR: boolean type cannot be comparable with <, > , <=, >= operators");
+            Log.error("boolean type cannot be comparable with <, > , <=, >= operators");
         } else {
             // err handling could be neccesarry
         }
@@ -235,8 +246,8 @@ public class TypeResolver {
 
     public static TypeInfoBinopBool resolveBinopBooleanTypeEquality(String lhs, String rhs) {
         TypeInfoBinop ti = new TypeInfoBinop();
-        System.out.println("lhs:" + lhs);
-        System.out.println("rhs:" + rhs);
+        Log.debug("lhs:" + lhs);
+        Log.debug("rhs:" + rhs);
         if (lhs.equals("float") || rhs.equals("float")) {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
@@ -250,12 +261,16 @@ public class TypeResolver {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
             ti.result_type = "int";
-        } else if (lhs.equals("bool") || rhs.equals("bool")) {
+        } else if (lhs.equals("char") && rhs.equals("char")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "char";
+        } else if (lhs.equals("bool") && rhs.equals("bool")) {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
             ti.result_type = "bool";
         } else {
-            // err handling could be neccesarry
+            Log.error("try casting one type to another if possible " + "(" + lhs + ")" + rhs);
         }
 
         TypeInfoBinopBool tb = new TypeInfoBinopBool();
@@ -272,7 +287,7 @@ public class TypeResolver {
             ti.rhs_type = rhs;
             ti.result_type = "int";
         } else {
-            System.err.println("ERROR: Shift operators (<<, >>) only support integer types.");
+            Log.error("Shift operators (<<, >>) only support integer types.");
         }
     
         TypeInfoBinopInt shiftType = new TypeInfoBinopInt();
@@ -326,7 +341,7 @@ public class TypeResolver {
             tr.ret_type = ret;
 
             if (!(tr.expr_type.equals(tr.ret_type))) {
-                System.out.println("WARNING: autocast from type '" + tr.expr_type + "' to type '" + tr.ret_type + "' may be unwanted!");
+                Log.warning("autocast from type '" + tr.expr_type + "' to type '" + tr.ret_type + "' may be unwanted!");
             }
 
             tr.result_type = ret;
@@ -338,7 +353,7 @@ public class TypeResolver {
             } else if (expr.equals(ret)) {
                 tr.result_type = ret;
             } else {
-                System.err.println("ERROR: expression type '" + tr.expr_type + "' does not match with function return type '" + tr.ret_type + "' causing error!");
+                Log.error("expression type '" + tr.expr_type + "' does not match with function return type '" + tr.ret_type + "' causing error!");
             }
         }
         // IMPORTANT: tr can have null values be careful!
@@ -346,6 +361,10 @@ public class TypeResolver {
     }
 
     public static TypeInfoVariableDef resolveVariableDefType(String var_type, String expr_type) {
+        // int a = 5;
+        // int -> var_type: int
+        // 5 -> expr_type: int
+
         TypeInfoVariableDef vd = new TypeInfoVariableDef();
         if (var_type.equals(expr_type)) {
             vd.auto_cast = false;
@@ -361,13 +380,13 @@ public class TypeResolver {
             vd.var_type = var_type;
             vd.result_type = var_type;
             if (var_type.equals("int") && expr_type.equals("float")) {
-                System.out.println("WARNING: autocast from type '" + vd.expr_type + "' to type '" + vd.var_type + "' may be unwanted!");
+                Log.warning("autocast from type '" + vd.expr_type + "' to type '" + vd.var_type + "' may be unwanted!");
             }
         } else {
             vd.auto_cast = false;
             vd.expr_type = expr_type;
             vd.var_type = var_type;
-            System.out.println("ERROR: autocast is not possible from type '" + vd.expr_type + "' to type '" + vd.var_type + "'!");
+            Log.error("autocast is not possible from type '" + vd.expr_type + "' to type '" + vd.var_type + "'!");
         }
 
         // IMPORTANT: vd can have null values be careful!
@@ -376,7 +395,7 @@ public class TypeResolver {
 
     public static TypeInfoVariableDef resolveVariableDefArrayType(String var_type, String expr_type, int reducedDim) {
         if (!isArrayType(var_type)) {
-            System.err.println("it's not an array type");
+            Log.error("it's not an array type");
             return null;
         }
         TypeInfoVariableDef vd = new TypeInfoVariableDef();

@@ -12,7 +12,7 @@ ANTLR = ./lib/antlr-4.7-complete.jar
 # Detect OS to set classpath separator
 ifeq ($(OS), Windows_NT)
     CLASSPATH_SEP = ;
-	MKDIR_P = mkdir $(BUILD)
+	MKDIR_P = cmd /C "if not exist $(BUILD) mkdir $(BUILD)"
 else
     CLASSPATH_SEP = :
 	MKDIR_P = mkdir -p $(BUILD)
@@ -27,10 +27,10 @@ gen:
 # $(MKDIR_P)
 build:
 	$(MKDIR_P)
-	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java src/tile/ast/types/*.java src/tile/sym/*.java -d $(BUILD)
+	javac -cp $(ANTLR) $(PACKAGE_PATH)/*.java src/tile/*.java src/tile/app/*.java src/tile/ast/base/*.java src/tile/ast/stmt/*.java src/tile/ast/expr/*.java src/tile/ast/types/*.java src/tile/sym/*.java src/tile/err/*.java -d $(BUILD)
 
 run:
 	java -cp "$(ANTLR)$(CLASSPATH_SEP).$(CLASSPATH_SEP)$(BUILD)" org.antlr.v4.gui.TestRig $(PACKAGE).$(LANG) $(RULE) -gui ./examples/test.tile
 
 app:
-	java -cp "$(ANTLR)$(CLASSPATH_SEP).$(CLASSPATH_SEP)$(BUILD)" tile.app.Tile
+	@java -cp "$(ANTLR)$(CLASSPATH_SEP).$(CLASSPATH_SEP)$(BUILD)" tile.app.Tile $(ARGS)

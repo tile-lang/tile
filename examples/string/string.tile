@@ -1,0 +1,6 @@
+func print(str: string): void {
+    tasm {
+        "load 0",
+        "puts"
+    }
+}

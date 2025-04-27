@@ -21,7 +21,9 @@ globalStatements
 globalStatement
     : variableStmt
     | funcDefStmt
+    | importStmt
     | nativeFuncDeclStmt
+    | typeDefinition
     ;
 
 localStatements
@@ -35,11 +37,12 @@ localStatement
     | selectionStmt
     | funcDefStmt
     | returnStmt
+    | tasmBlock
     | blockStmt
     ;
 
 expressionStmt
-    : expression? ';'
+    : expression? PUNC_SEMI
     ;
 
 expression
@@ -48,6 +51,7 @@ expression
     | arrayIndexAccessor
     | arrayValuedInitializer
     | arraySizedInitializer
+    | objectLiteralExpression
     | funcCallExpression
     | castExpression
     | multiplicativeExpression
@@ -74,10 +78,25 @@ primaryExpression
     | '(' expression ')'
     ;
 
+objectLiteralExpression
+    :
+    PUNC_LEFTBRACE ( objectLiteralFieldAssignment (PUNC_COMMA objectLiteralFieldAssignment)*)? PUNC_COMMA? PUNC_RIGHTBRACE
+    ;
+
+objectLiteralFieldAssignment
+    : '.' IDENTIFIER assignmentOperator expression
+    ;
+
 unaryExpression
-    : ( '++' | '--' ) IDENTIFIER
-    | IDENTIFIER ( '++' | '--' )
+    : incDecOperator primaryExpression
+    | primaryExpression incDecOperator
     | unaryOperator primaryExpression
+    | unaryOperator funcCallExpression
+    | unaryOperator castExpression
+    ;
+
+incDecOperator
+    : ( '++' | '--' )
     ;
 
 unaryOperator
@@ -92,8 +111,8 @@ arrayValuedInitializer
     ;
 
 arrayValuedInitializerElements
-    : expression (',' expression)*
-    | arrayValuedInitializer (',' arrayValuedInitializer)*
+    : expression (PUNC_COMMA expression)*
+    | arrayValuedInitializer (PUNC_COMMA arrayValuedInitializer)*
     ;
 
 arraySizedInitializer
@@ -117,9 +136,9 @@ arrayIndexAccessorSetter
     ;
 
 funcCallExpression
-    : IDENTIFIER '(' (expression)? (',' expression)* ')'
-    | primaryExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
-    | funcCallExpression '.' IDENTIFIER '(' (expression)? (',' expression)* ')'
+    : IDENTIFIER '(' (expression)? (PUNC_COMMA expression)* ')'
+    | primaryExpression '.' IDENTIFIER '(' (expression)? (PUNC_COMMA expression)* ')'
+    | funcCallExpression '.' IDENTIFIER '(' (expression)? (PUNC_COMMA expression)* ')'
     ;
 
 castExpression
@@ -202,8 +221,8 @@ variableStmt
     ;
 
 variableDecleration
-    : IDENTIFIER ':' typeName ';'
-    | typeName IDENTIFIER ';'
+    : IDENTIFIER ':' typeName PUNC_SEMI
+    | typeName IDENTIFIER PUNC_SEMI
     ;
 
 variableDefinition
@@ -233,7 +252,12 @@ forInitial
 forUpdate
     : unaryExpression
     | funcCallExpression
-    | variableAssignment
+    | forUpdateAssingment
+    ;
+
+forUpdateAssingment
+    : IDENTIFIER assignmentOperator expression
+    | arrayIndexAccessorSetter assignmentOperator expression
     ;
 
 forStmt
@@ -249,19 +273,39 @@ ifStmt
     ;
 
 funcDefStmt
-    : KW_FUNC IDENTIFIER '(' (argument)? (',' argument)* ')' ':' typeName blockStmt
+    : KW_FUNC IDENTIFIER '(' (argument)? (PUNC_COMMA argument)* ')' ':' typeName blockStmt
+    ;
+
+importStmt
+    : KW_IMP importTarget PUNC_SEMI
+    ;
+
+importTarget
+    : STRING_LITERAL
     ;
 
 nativeFuncDeclStmt
-    : KW_NATIVE KW_FUNC IDENTIFIER '(' (cArgument)? (',' cArgument)* ')' ':' cTypeName ';'
+    : KW_NATIVE KW_FUNC IDENTIFIER '(' (cArgument)? (PUNC_COMMA cArgument)* ')' ':' cTypeName PUNC_SEMI
     ;
 
 returnStmt
     : KW_RETURN expressionStmt
     ;
 
+tasmBlock
+    : KW_TASM PUNC_LEFTBRACE tasmInstructions PUNC_RIGHTBRACE
+    ;
+
+tasmInstructions
+    : (tasmLine)? (PUNC_COMMA tasmLine)*
+    ;
+
+tasmLine
+    : STRING_LITERAL
+    ;
+
 blockStmt
-    : '{' localStatements? '}'
+    : PUNC_LEFTBRACE localStatements? PUNC_RIGHTBRACE
     ;
 
 argument
@@ -308,4 +352,22 @@ cTypeName
     | KW_CPTR
     | KW_CVOID
     // | IDENTIFIER // For custom types like structs
+    ;
+
+typeDefinition
+    : KW_TYPE IDENTIFIER structDefinition
+    | KW_TYPE IDENTIFIER ':' typeUnion PUNC_SEMI
+    ;
+
+structDefinition
+    : PUNC_LEFTBRACE fieldDefinition* PUNC_RIGHTBRACE
+    ;
+
+fieldDefinition
+    : IDENTIFIER ':' typeName PUNC_SEMI
+    | typeName IDENTIFIER PUNC_SEMI
+    ;
+
+typeUnion
+    : IDENTIFIER ('|' IDENTIFIER)*
     ;
