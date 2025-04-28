@@ -276,6 +276,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 is_native = true;
             } catch (Exception e) {
                 Log.error(line + ":" + col + ": function " + funcId + " is not defined before called.");
+                return null; // FIXME: find a better way and consider func overloading as well for the future!
             }
         }
 
@@ -523,7 +524,12 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         int reducedDim = exprs.size();
         typeInfo = TypeResolver.resolveArrayIndexAccessor(varType.toString(), reducedDim);
 
-        return new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
+        ArrayIndexAccessor aia = new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
+        if (isGlobal.get() == true) {
+            aia.setAsGlobal();
+        }
+
+        return aia;
     }
 
     @Override
