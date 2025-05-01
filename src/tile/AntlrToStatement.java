@@ -24,11 +24,13 @@ import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
 import gen.antlr.tile.tileParser.SelectionStmtContext;
+import gen.antlr.tile.tileParser.StructDefinitionContext;
 import gen.antlr.tile.tileParser.VariableAssignmentContext;
 import gen.antlr.tile.tileParser.VariableDeclerationContext;
 import gen.antlr.tile.tileParser.VariableDefinitionContext;
 import gen.antlr.tile.tileParser.VariableStmtContext;
 import gen.antlr.tile.tileParser.TasmBlockContext;
+import gen.antlr.tile.tileParser.TypeDefinitionContext;
 import gen.antlr.tile.tileParser.WhileStmtContext;
 import gen.antlr.tile.tileParser.ForInitialContext;
 import gen.antlr.tile.tileParserBaseVisitor;
@@ -263,38 +265,26 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         return result;
     }
 
-    // @Override
-    // public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
-    //     String name = ctx.IDENTIFIER().getText();
+    @Override
+    public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
+        String typeName = ctx.IDENTIFIER().getText();
+        List<TypeDefinition.Field> fields = null;
+        TypeDefinition.Kind kind = null;
+        if (ctx.structDefinition() != null) {
+            fields = new ArrayList<>();
+            kind = TypeDefinition.Kind.STRUCT;
+            for (int i = 0; i < ctx.structDefinition().fieldDefinition().size(); i++) {
+                String id = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getText();
+                String type = ctx.structDefinition().fieldDefinition(i).typeName().getText();
+                TypeDefinition.Field field = new TypeDefinition.Field(id, type);
+                fields.add(field);
+            }
+        }
 
-    //     if (ctx.structDefinition() != null) {
-    //         TypeDefinition def = new TypeDefinition(name, TypeDefinition.Kind.STRUCT);
-    //         List<String> fields = new ArrayList<>();
-
-    //         for (var fieldCtx : ctx.structDefinition().fieldDefinition()) {
-    //             String fieldName = fieldCtx.IDENTIFIER().getText();
-    //             String fieldType = fieldCtx.typeName().getText();
-    //             fields.add(new String(fieldName, fieldType));
-    //         }
-
-    //         def.fields = fields;
-    //         TypeResolver.userTypeDefs.put(name, def);
-
-    //     } else if (ctx.typeUnion() != null) {
-    //         TypeDefinition def = new TypeDefinition(name, TypeDefinition.Kind.UNION);
-
-    //         List<String> variants = ctx.typeUnion().IDENTIFIER()
-    //                 .stream()
-    //                 .map(ParseTree::getText)
-    //                 .toList();
-
-    //         def.variants = variants;
-    //         TypeResolver.userTypeDefs.put(name, def);
-    //     }
-
-    //     return new ExpressionStmt(null, false);
-    //     return super.visitTypeDefinition(ctx);
-    // }
+        TypeDefinition td = new TypeDefinition(typeName, kind, fields);
+        TypeResolver.userTypeDefs.put(typeName, td);
+        return td;
+    }
 
     @Override
     public Statement visitFuncDefStmt(FuncDefStmtContext ctx) {
