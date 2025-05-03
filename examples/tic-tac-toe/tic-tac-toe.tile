@@ -18,13 +18,6 @@ native func IsKeyDown(key: ci16): ci8;
 native func DrawText(text: cptr, posX: ci32, posY: ci32, fontSize: ci32, color: cu32): cvoid;
 
 
-func drawCharText(c: char, x: int, y: int): void {
-    buffer: char[] = char[2];
-    buffer[0] = c;
-    buffer[1] = 0; // Null-terminate for C-strings
-    DrawText(buffer, x, y, 30, 0x000000FF);
-}
-
 func drawGrid(grid: char[], square_colors: int[], selected: int, current_player: char): void {
     cellSize: int = 80;
     gap: int = 10;
@@ -41,11 +34,6 @@ func drawGrid(grid: char[], square_colors: int[], selected: int, current_player:
         if (i == selected) {
             DrawRectangle(x, y, cellSize, cellSize, 0xCCCC00FF);
         }
-
-        // Draw X or O
-        // if (grid[i] == 'X' || grid[i] == 'O') {
-        //     drawCharText(grid[i], x + cellSize / 3, y + cellSize / 4);
-        // }
     }
 }
 
@@ -62,33 +50,6 @@ func printChar(c: char): void {
         "putc"
     }
 }
-
-func printGrid(grid: char[], selected: int): void {
-    for (i: int = 0; i < 9; i++) {
-        if (i == selected) {
-            print("[");
-        } else {
-            print(" ");
-        }
-
-        printChar(grid[i]);
-
-        if (i == selected) {
-            print("]");
-        } else {
-            print(" ");
-        }
-
-        if (i % 3 != 2) {
-            print("|");
-        } else if (i != 8) {
-            print("\n-+-+-\n");
-        } else {
-            print("\n");
-        }
-    }
-}
-
 
 
 func checkWinnerByColor(square_colors: int[], color: int): bool {
