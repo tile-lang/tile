@@ -39,7 +39,7 @@ func drawGrid(grid: char[], square_colors: int[], selected: int, current_player:
 
         // Draw selection border
         if (i == selected) {
-            DrawRectangle(x, y, cellSize, cellSize, 0xCCCC00FF); // Yellow border for selected
+            DrawRectangle(x, y, cellSize, cellSize, 0xCCCC00FF);
         }
 
         // Draw X or O
