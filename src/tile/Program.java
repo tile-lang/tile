@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -27,7 +28,7 @@ public class Program extends Generator {
     private static int tasmGlobalVarIdx = 0;
     public static Map<String, Variable> globalVariableSymbols = new HashMap<>();
     public static Deque<Statement> parentStack = new ArrayDeque<>();
-
+    public static List<Path> programPaths = new ArrayList<>();
     private static boolean _err;
 
     private Path baseDirectory;
@@ -49,6 +50,10 @@ public class Program extends Generator {
 
     public void setBaseDirectory(Path baseDirectory) {
         this.baseDirectory = baseDirectory;
+    }
+
+    public Path getBaseDirectory() {
+        return baseDirectory;
     }
 
     public void markAsImported() {

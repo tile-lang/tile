@@ -1,0 +1,152 @@
+/*
+    05.02.2025
+    berkenvr
+
+    make app ARGS=".\examples\pong\pong.tile -o .\examples\pong\pong.bin -gen-tasm -l raylib.dll"
+    tvm .\examples\pong\pong.bin
+*/
+
+native func InitWindow(width: ci32, height: ci32, title: cptr): cvoid;
+native func WindowShouldClose(): ci8;
+native func CloseWindow(): cvoid;
+native func BeginDrawing(): cvoid;
+native func EndDrawing(): cvoid;
+native func ClearBackground(color: cu32): cvoid;
+native func SetTargetFPS(fps: ci32): cvoid;
+native func GetFrameTime(): cf32;
+native func DrawRectangle(posX: ci32, posY: ci32, width: ci32, height: ci32, color: cu32): cvoid;
+native func DrawCircle(centerX: ci32, centerY: ci32, radius: cf32, color: cu32): cvoid;
+native func IsKeyDown(key: ci16): ci8;
+
+screenWidth: int = 800;
+screenHeight: int = 600;
+paddleWidth: int = 10;
+paddleHeight: int = 50;
+paddleSpeed: int = 400;
+ballSize: int = 10;
+
+func run_game(): void {
+    leftX: int = 50;
+    leftY: float = (screenHeight - paddleHeight) / 2.0;
+
+    rightX: int = screenWidth - 50 - paddleWidth;
+    rightY: float = (screenHeight - paddleHeight) / 2.0;
+
+    ballX: float = screenWidth / 2.0 - ballSize / 2.0;
+    ballY: float = screenHeight / 2.0 - ballSize / 2.0;
+    ballRadius: float = ballSize / 2.0;
+    ballSpeed: float = 230.0;
+    velX: float = ballSpeed;
+    velY: float = ballSpeed;
+
+    while ((bool)WindowShouldClose() == false) {
+        dt: float = GetFrameTime();
+
+        // Left Side Player: W/S
+        if((bool)IsKeyDown('W')) {
+            leftY = leftY - paddleSpeed * dt;
+        } else if((bool)IsKeyDown('S')) {
+            leftY = leftY + paddleSpeed * dt;
+        }
+
+        // Right Side Player: Up, Down Arrow Keys
+        if((bool)IsKeyDown(265)) {
+            rightY = rightY - paddleSpeed * dt;
+        } else if((bool)IsKeyDown(264)) {
+            rightY = rightY + paddleSpeed * dt;
+        }
+
+        // Boundaries
+        if(leftY < 0.0) {
+            leftY = 0.0;
+        } else if(leftY + paddleHeight > screenHeight) {
+            leftY = screenHeight - paddleHeight;
+        }
+        if(rightY < 0.0) {
+            rightY = 0.0;
+        } else if(rightY + paddleHeight > screenHeight) {
+            rightY = screenHeight - paddleHeight;
+        }
+
+        // Ball movement
+        ballX = ballX + velX * dt;
+        ballY = ballY + velY * dt;
+
+        // Top and bottom edge tab
+        if(ballY <= 0.0) {
+            ballY = 0.0;
+            velY = -velY;
+        } else if(ballY + ballSize >= screenHeight) {
+            ballY = screenHeight - ballSize;
+            velY = -velY;
+        }
+
+        // Left paddle collision
+        if(ballX + ballSize > leftX &&
+             ballX < leftX + paddleWidth &&
+             ballY + ballSize > leftY &&
+             ballY < leftY + paddleHeight )
+        {
+            ballX = leftX + paddleWidth;
+            velX  = -velX;
+
+            centerY: float = ballY + ballRadius;
+            paddleMid: float = leftY + paddleHeight / 2.0;
+
+            if(centerY < paddleMid) {
+                velY = -ballSpeed;
+            } else {
+                velY = ballSpeed;
+            }
+        }
+
+        // Right paddle collision
+        if(ballX < rightX + paddleWidth &&
+            ballX + ballSize > rightX &&
+            ballY + ballSize > rightY &&
+            ballY < rightY + paddleHeight) {
+
+            ballX = rightX - ballSize;
+            velX  = -velX;
+
+            centerY: float = ballY + ballRadius;
+            paddleMid: float = rightY + paddleHeight / 2.0;
+
+            if(centerY < paddleMid) {
+                velY = -ballSpeed;
+            } else {
+                velY = ballSpeed;
+            }
+        }
+
+        // Reset after score
+        if(ballX < 0.0) {
+            ballX = screenWidth / 2.0 - ballSize / 2.0;
+            ballY = screenHeight / 2.0 - ballSize / 2.0;
+            velX  = -ballSpeed;
+        } else if(ballX > screenWidth) {
+            ballX = screenWidth / 2.0 - ballSize / 2.0;
+            ballY = screenHeight / 2.0 - ballSize / 2.0;
+            velX  = ballSpeed;
+        }
+
+        BeginDrawing();
+            ClearBackground(0x000000FF);
+            DrawRectangle(leftX, (int)leftY, paddleWidth, paddleHeight, 0xFF0000FF);
+            DrawRectangle(rightX, (int)rightY, paddleWidth, paddleHeight, 0x0000FFFF);
+            DrawCircle(
+                (int)(ballX + ballRadius),
+                (int)(ballY + ballRadius),
+                ballRadius,
+                0xFFFFFFFF
+            );
+        EndDrawing();
+    }
+}
+
+func main(argc: int): void {
+    InitWindow(screenWidth, screenHeight, "Pong");
+    SetTargetFPS(60);
+    run_game();
+    CloseWindow();
+}

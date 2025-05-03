@@ -276,6 +276,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 is_native = true;
             } catch (Exception e) {
                 Log.error(line + ":" + col + ": function " + funcId + " is not defined before called.");
+                return null; // FIXME: find a better way and consider func overloading as well for the future!
             }
         }
 
@@ -357,8 +358,31 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitLogicalOrExpression(LogicalOrExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitLogicalOrExpression(ctx);
+        if (ctx.logicalAndExpression().size() == 1) {
+            return visit(ctx.logicalAndExpression(0));
+        }
+
+        // Otherwise, process the operator and operands.
+        Expression left = visit(ctx.logicalAndExpression(0)); // The first operand.
+        for (int i = 1; i < ctx.logicalAndExpression().size(); i++) {
+            // Get the operator (* or /).
+            String operator = ctx.getChild((i * 2) - 1).getText(); // Operators are at odd indices.
+
+            // Visit the right operand.
+            Expression right = visit(ctx.logicalAndExpression(i));
+
+            String lhs_type = left.getType();
+            String rhs_type = right.getType();
+
+            if (!lhs_type.equals("bool") || !rhs_type.equals("bool")) {
+                int line = ctx.stop.getLine();
+                int col = ctx.stop.getCharPositionInLine();
+                Log.warning(line + ":" + col + ": logical expressions type should be a bool type!");
+            }
+            TypeInfoLogicalBinop type = TypeResolver.resolveBinopLogicalType(lhs_type, rhs_type);
+            left = new LogicalExpression(left, operator, right, type);
+        }
+        return left;
     }
 
     @Override
@@ -523,7 +547,12 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         int reducedDim = exprs.size();
         typeInfo = TypeResolver.resolveArrayIndexAccessor(varType.toString(), reducedDim);
 
-        return new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
+        ArrayIndexAccessor aia = new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
+        if (isGlobal.get() == true) {
+            aia.setAsGlobal();
+        }
+
+        return aia;
     }
 
     @Override

@@ -6,10 +6,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import gen.antlr.tile.tileParser;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
@@ -24,11 +24,13 @@ import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
 import gen.antlr.tile.tileParser.SelectionStmtContext;
+import gen.antlr.tile.tileParser.StructDefinitionContext;
 import gen.antlr.tile.tileParser.VariableAssignmentContext;
 import gen.antlr.tile.tileParser.VariableDeclerationContext;
 import gen.antlr.tile.tileParser.VariableDefinitionContext;
 import gen.antlr.tile.tileParser.VariableStmtContext;
 import gen.antlr.tile.tileParser.TasmBlockContext;
+import gen.antlr.tile.tileParser.TypeDefinitionContext;
 import gen.antlr.tile.tileParser.WhileStmtContext;
 import gen.antlr.tile.tileParser.ForInitialContext;
 import gen.antlr.tile.tileParserBaseVisitor;
@@ -44,6 +46,19 @@ import tile.ast.types.TypeResolver.TypeInfoVariableDef;
 import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
+
+    public static boolean staticReturnAnalysis(BlockStmt blck) {
+        for (Statement stmt : blck.statements) {
+            if (stmt instanceof ReturnStmt) {
+                return true;
+            } else if (stmt instanceof BlockStmt) {
+                if (staticReturnAnalysis((BlockStmt)stmt)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     @Override
     public Statement visitBlockStmt(BlockStmtContext ctx) {
@@ -156,6 +171,20 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
                 Program.blockStack.remove(Program.blockStack.size() - 1);
             }
+
+            // static analysis if func returns the correct thing
+            if (parent instanceof FuncDefStmtContext) {
+                if (!(func.getReturn_type().result_type.equals("void"))) {
+                    boolean isReturned = staticReturnAnalysis(blockStmt);
+                    if (!isReturned) {
+                        int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                        int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                        Log.error(line + ":" + col + ": function should return!");
+                    }
+                }
+            }
+
+
             return blockStmt;
         }
         
@@ -180,7 +209,18 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             }
             blockStmt.addStatement(stmt);
         }
-        
+
+        // static analysis if func returns the correct thing
+        if (parent instanceof FuncDefStmtContext) {
+            if (!(func.getReturn_type().result_type.equals("void"))) {
+                boolean isReturned = staticReturnAnalysis(blockStmt);
+                if (!isReturned) {
+                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": function should return!");
+                }
+            }
+        }
 
         if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
             Program.blockStack.remove(Program.blockStack.size() - 1);
@@ -263,38 +303,26 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         return result;
     }
 
-    // @Override
-    // public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
-    //     String name = ctx.IDENTIFIER().getText();
+    @Override
+    public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
+        String typeName = ctx.IDENTIFIER().getText();
+        List<TypeDefinition.Field> fields = null;
+        TypeDefinition.Kind kind = null;
+        if (ctx.structDefinition() != null) {
+            fields = new ArrayList<>();
+            kind = TypeDefinition.Kind.STRUCT;
+            for (int i = 0; i < ctx.structDefinition().fieldDefinition().size(); i++) {
+                String id = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getText();
+                String type = ctx.structDefinition().fieldDefinition(i).typeName().getText();
+                TypeDefinition.Field field = new TypeDefinition.Field(id, type);
+                fields.add(field);
+            }
+        }
 
-    //     if (ctx.structDefinition() != null) {
-    //         TypeDefinition def = new TypeDefinition(name, TypeDefinition.Kind.STRUCT);
-    //         List<String> fields = new ArrayList<>();
-
-    //         for (var fieldCtx : ctx.structDefinition().fieldDefinition()) {
-    //             String fieldName = fieldCtx.IDENTIFIER().getText();
-    //             String fieldType = fieldCtx.typeName().getText();
-    //             fields.add(new String(fieldName, fieldType));
-    //         }
-
-    //         def.fields = fields;
-    //         TypeResolver.userTypeDefs.put(name, def);
-
-    //     } else if (ctx.typeUnion() != null) {
-    //         TypeDefinition def = new TypeDefinition(name, TypeDefinition.Kind.UNION);
-
-    //         List<String> variants = ctx.typeUnion().IDENTIFIER()
-    //                 .stream()
-    //                 .map(ParseTree::getText)
-    //                 .toList();
-
-    //         def.variants = variants;
-    //         TypeResolver.userTypeDefs.put(name, def);
-    //     }
-
-    //     return new ExpressionStmt(null, false);
-    //     return super.visitTypeDefinition(ctx);
-    // }
+        TypeDefinition td = new TypeDefinition(typeName, kind, fields);
+        TypeResolver.userTypeDefs.put(typeName, td);
+        return td;
+    }
 
     @Override
     public Statement visitFuncDefStmt(FuncDefStmtContext ctx) {
@@ -541,20 +569,28 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         String rawPath = ctx.importTarget().STRING_LITERAL().getText();
         Path importPath = Paths.get(rawPath.replace("\"", ""));
 
-        if (!Files.exists(importPath)) {
+        Path baseDir = Program.programPaths.getLast();
+        Path combined = baseDir.resolve(importPath).normalize();
+
+        if (!Files.exists(combined)) {
             Log.error("Failed to import: file not found: " + rawPath);
         }
 
-        tileParser parser = Tile.createTileParser(importPath.toString());
+        Program.programPaths.add(combined.getParent());
+        Program importedProgram;
+        try {
+            tileParser parser = Tile.createTileParser(combined.toString());
+            tileParser.ProgramContext importedCtx = parser.program();
+            AntlrToProgram visitor = new AntlrToProgram();
+            importedProgram = visitor.visit(importedCtx);
 
-        tileParser.ProgramContext importedCtx = parser.program();
-        AntlrToProgram visitor = new AntlrToProgram();
-        Program importedProgram = visitor.visit(importedCtx);
+            importedProgram.setBaseDirectory(combined);
+            importedProgram.markAsImported();
+        } finally {
+            Program.programPaths.removeLast();
+        }
 
-        importedProgram.setBaseDirectory(importPath.getParent());
-        importedProgram.markAsImported();
-
-        return new ImportStmt(importPath.toString(), importedProgram);
+        return new ImportStmt(combined.toString(), importedProgram);
     }
 
     @Override

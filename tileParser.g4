@@ -87,6 +87,10 @@ objectLiteralFieldAssignment
     : '.' IDENTIFIER assignmentOperator expression
     ;
 
+objectAccessor
+    : IDENTIFIER '.' IDENTIFIER
+    ;
+
 unaryExpression
     : incDecOperator primaryExpression
     | primaryExpression incDecOperator
@@ -233,6 +237,7 @@ variableDefinition
 variableAssignment
     : IDENTIFIER assignmentOperator expressionStmt
     | arrayIndexAccessorSetter assignmentOperator expressionStmt
+    | objectAccessor assignmentOperator expressionStmt
     ;
 
 loopStmt
