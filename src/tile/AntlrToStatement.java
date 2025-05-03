@@ -47,6 +47,19 @@ import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
+    public static boolean staticReturnAnalysis(BlockStmt blck) {
+        for (Statement stmt : blck.statements) {
+            if (stmt instanceof ReturnStmt) {
+                return true;
+            } else if (stmt instanceof BlockStmt) {
+                if (staticReturnAnalysis((BlockStmt)stmt)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public Statement visitBlockStmt(BlockStmtContext ctx) {
         BlockStmt blockStmt = null;
@@ -158,6 +171,20 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
                 Program.blockStack.remove(Program.blockStack.size() - 1);
             }
+
+            // static analysis if func returns the correct thing
+            if (parent instanceof FuncDefStmtContext) {
+                if (!(func.getReturn_type().result_type.equals("void"))) {
+                    boolean isReturned = staticReturnAnalysis(blockStmt);
+                    if (!isReturned) {
+                        int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                        int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                        Log.error(line + ":" + col + ": function should return!");
+                    }
+                }
+            }
+
+
             return blockStmt;
         }
         
@@ -182,7 +209,18 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             }
             blockStmt.addStatement(stmt);
         }
-        
+
+        // static analysis if func returns the correct thing
+        if (parent instanceof FuncDefStmtContext) {
+            if (!(func.getReturn_type().result_type.equals("void"))) {
+                boolean isReturned = staticReturnAnalysis(blockStmt);
+                if (!isReturned) {
+                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": function should return!");
+                }
+            }
+        }
 
         if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
             Program.blockStack.remove(Program.blockStack.size() - 1);
