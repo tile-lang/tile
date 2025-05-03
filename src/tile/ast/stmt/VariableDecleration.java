@@ -37,8 +37,8 @@ public class VariableDecleration implements Statement, Variable{
         // 0 for all defined types
         // user defined null (0)
         if (isGlobal) {
-            generatedCode += "push 0\n";
-            generatedCode += "gstore " + tasmIdx + " ; " + typeInfo + " " + varId + "\n";
+            // generatedCode += "push 0\n";
+            // generatedCode += "gstore " + tasmIdx + " ; " + typeInfo + " " + varId + "\n";
         } else {
             generatedCode += "    push 0\n";
             generatedCode += "    store " + tasmIdx + " ; " + typeInfo + " " + varId + "\n";
