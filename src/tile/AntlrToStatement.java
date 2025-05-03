@@ -6,10 +6,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import gen.antlr.tile.tileParser;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
@@ -541,20 +541,28 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         String rawPath = ctx.importTarget().STRING_LITERAL().getText();
         Path importPath = Paths.get(rawPath.replace("\"", ""));
 
-        if (!Files.exists(importPath)) {
+        Path baseDir = Program.programPaths.getLast();
+        Path combined = baseDir.resolve(importPath).normalize();
+
+        if (!Files.exists(combined)) {
             Log.error("Failed to import: file not found: " + rawPath);
         }
 
-        tileParser parser = Tile.createTileParser(importPath.toString());
+        Program.programPaths.add(combined.getParent());
+        Program importedProgram;
+        try {
+            tileParser parser = Tile.createTileParser(combined.toString());
+            tileParser.ProgramContext importedCtx = parser.program();
+            AntlrToProgram visitor = new AntlrToProgram();
+            importedProgram = visitor.visit(importedCtx);
 
-        tileParser.ProgramContext importedCtx = parser.program();
-        AntlrToProgram visitor = new AntlrToProgram();
-        Program importedProgram = visitor.visit(importedCtx);
+            importedProgram.setBaseDirectory(combined);
+            importedProgram.markAsImported();
+        } finally {
+            Program.programPaths.removeLast();
+        }
 
-        importedProgram.setBaseDirectory(importPath.getParent());
-        importedProgram.markAsImported();
-
-        return new ImportStmt(importPath.toString(), importedProgram);
+        return new ImportStmt(combined.toString(), importedProgram);
     }
 
     @Override
