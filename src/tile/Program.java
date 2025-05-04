@@ -27,6 +27,7 @@ public class Program extends Generator {
     public static List<BlockStmt> blockStack = new ArrayList<>();
     private static int tasmGlobalVarIdx = 0;
     public static Map<String, Variable> globalVariableSymbols = new HashMap<>();
+    public static List<Statement> globalVariables = new ArrayList<Statement>();
     public static Deque<Statement> parentStack = new ArrayDeque<>();
     public static List<Path> programPaths = new ArrayList<>();
     private static boolean _err;
@@ -65,8 +66,6 @@ public class Program extends Generator {
     }
 
     private String generateProgram(String generatedCode) {
-        List<Statement> globalVariables = new ArrayList<Statement>();
-
         if (!isImportedFile) {
             generatedCode += "; program begins\n";
             generatedCode += "jmp __start\n";
@@ -85,17 +84,15 @@ public class Program extends Generator {
         }
 
         if(!isImportedFile) {
-        generatedCode += "__start:\n";
-        }
-        generatedCode += "; global variables\n";
-        for (int i = 0; i < globalVariables.size(); i++) {
-            Statement stmt = globalVariables.get(i);
-            if (stmt != null) {
-                generatedCode = stmt.generateTasm(generatedCode);
+            generatedCode += "__start:\n";
+            generatedCode += "; global variables\n";
+            for (int i = 0; i < globalVariables.size(); i++) {
+                Statement stmt = globalVariables.get(i);
+                if (stmt != null) {
+                    generatedCode = stmt.generateTasm(generatedCode);
+                }
             }
-        }
-
-        if (!isImportedFile) {
+        
             generatedCode += "\n\n";
             generatedCode += "push 0 ; argc\n"; // for simulating argc and argv for now
             // generatedCode += "push 0 ; argv\n";
