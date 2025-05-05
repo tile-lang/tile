@@ -32,16 +32,12 @@ public class ArrayIndexAccessor implements Expression {
     public String generateTasm(String generatedCode) {
         generatedCode = genLoadCode(generatedCode);
         generatedCode += "    deref ; dereferance\n";
-        generatedCode += "    derefb "  + typeInfo.element_size + " ; dereferance\n";
         generatedCode = indicies.get(0).generateTasm(generatedCode);
         generatedCode += "    push " + typeInfo.element_size + "\n";
         generatedCode += "    mult\n";
         generatedCode += "    add\n";
+        generatedCode += "    derefb "  + typeInfo.element_size + " ; dereferance\n";
         return generatedCode;
-        
-        
-        // generatedCode += "    derefb "  + typeInfo.element_size + " ; dereferance\n";
-        // generatedCode += "    deref ; dereferance\n";
     }
 
     @Override
