@@ -16,10 +16,12 @@ public class TypeDefinition implements Statement {
     public static class Field {
         public String id;
         public String type;
+        public int type_size;
 
-        public Field(String id, String type) {
+        public Field(String id, String type, int type_size) {
             this.id = id;
             this.type = type;
+            this.type_size = type_size;
         }
     }
 
@@ -38,5 +40,9 @@ public class TypeDefinition implements Statement {
         This method Does Not Work like the others
          */
         return generatedCode;
+    }
+
+    public List<Field> getFields() {
+        return fields;
     }
 }

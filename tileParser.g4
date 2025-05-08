@@ -78,9 +78,9 @@ primaryExpression
     | '(' expression ')'
     ;
 
+// TODO: also allow zero initialize like {0}
 objectLiteralExpression
-    :
-    PUNC_LEFTBRACE ( objectLiteralFieldAssignment (PUNC_COMMA objectLiteralFieldAssignment)*)? PUNC_COMMA? PUNC_RIGHTBRACE
+    : IDENTIFIER? PUNC_LEFTBRACE ( objectLiteralFieldAssignment (PUNC_COMMA objectLiteralFieldAssignment)*)? PUNC_COMMA? PUNC_RIGHTBRACE
     ;
 
 objectLiteralFieldAssignment

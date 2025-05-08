@@ -18,6 +18,8 @@ import gen.antlr.tile.tileParser.InclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.LogicalAndExpressionContext;
 import gen.antlr.tile.tileParser.LogicalOrExpressionContext;
 import gen.antlr.tile.tileParser.MultiplicativeExpressionContext;
+import gen.antlr.tile.tileParser.ObjectAccessorContext;
+import gen.antlr.tile.tileParser.ObjectLiteralExpressionContext;
 import gen.antlr.tile.tileParser.PrimaryExpressionContext;
 import gen.antlr.tile.tileParser.RelationalExpressionContext;
 import gen.antlr.tile.tileParser.ShiftExpressionContext;
@@ -40,10 +42,12 @@ import tile.ast.expr.EqualityExpression;
 import tile.ast.expr.FuncCallExpression;
 import tile.ast.expr.LogicalExpression;
 import tile.ast.expr.MultiplicativeExpression;
+import tile.ast.expr.ObjectLiteral;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.ShiftExpression;
 import tile.ast.expr.UnaryExpression;
+import tile.ast.stmt.TypeDefinition;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
@@ -571,6 +575,76 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         Log.debug("visitForUpdate result " + result);
 
         return result;
+    }
+
+    @Override
+    public Expression visitObjectLiteralExpression(ObjectLiteralExpressionContext ctx) {
+        String type = "";
+        if (ctx.IDENTIFIER() != null) {
+            // Implemented
+            /*
+                a: Animal = Animal {
+                    .name = "asd",
+                    .age = 10
+                }; 
+            */
+            type = ctx.IDENTIFIER().getText();
+            TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+            if (td == null) {
+                int line = ctx.IDENTIFIER().getSymbol().getLine();
+                int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+                Log.error(line + ":" + col + ": literal type " + type + " cannot be resolved!");
+            } else {
+                // traverse {.identifier} and typedefinition fields to see if they matched
+                if (ctx.objectLiteralFieldAssignment() != null) {
+                    int[] assignedFields = new int[td.getFields().size()];
+                    List<Integer> assignedFieldsCheck = new ArrayList<>(); // to check if there is such a field
+                    for (int i = 0; i < ctx.objectLiteralFieldAssignment().size(); i++) {
+                        String objLitFieldId = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getText();
+
+                        for (int j = 0; j < td.getFields().size(); j++) {
+                            if (objLitFieldId.equals(td.getFields().get(j).id)) {
+                                assignedFieldsCheck.add(i);
+                                assignedFields[j] = 1;
+                                break;
+                            }                            
+                        }
+
+                        if (!assignedFieldsCheck.contains(i)) {
+                            int line = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getSymbol().getLine();
+                            int col = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getSymbol().getCharPositionInLine();
+                            Log.error(line + ":" + col + ": " + type + " doesn't have a field " + objLitFieldId + "!");
+                        }
+                    }
+
+                    ObjectLiteral objLit = new ObjectLiteral(td, type, assignedFields);
+                    return objLit;
+                }
+            }
+
+        } else {
+            // TODO: Not implemented inferring type
+            /*
+                a: Animal = {0}; 
+                a: Animal = {
+                    .name = "asd",
+                    .age = 10
+                }; 
+            */
+            int line = ctx.PUNC_LEFTBRACE().getSymbol().getLine();
+            int col = ctx.PUNC_LEFTBRACE().getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": for custom literal type, type inferring is not implemented yet!");
+        }
+
+
+        
+        return super.visitObjectLiteralExpression(ctx);
+    }
+
+    @Override
+    public Expression visitObjectAccessor(ObjectAccessorContext ctx) {
+        // TODO Auto-generated method stub
+        return super.visitObjectAccessor(ctx);
     }
 
 }

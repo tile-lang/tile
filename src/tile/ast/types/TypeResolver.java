@@ -164,6 +164,21 @@ public class TypeResolver {
         return -1;
     }
 
+    public static int resolveFieldTypeSize(String type) {
+        if (isArrayType(type)) {
+            return 8; // FIXME: check if this is on x64 or x86 tvm (get it as cmd arg)
+        }
+        switch (type) {
+            case "int":
+            case "float": return 4;
+            case "char": return 1;
+        }
+
+        // composite type
+        // FIXME:
+        return -1;
+    }
+
     public static TypeInfoArray resolveArrayInitializerType(String type, int dimension) {
         TypeInfoArray typeInfo = new TypeInfoArray();
         typeInfo.element_size = resolveArrayTypeSize(type);

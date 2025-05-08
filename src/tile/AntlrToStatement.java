@@ -314,7 +314,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             for (int i = 0; i < ctx.structDefinition().fieldDefinition().size(); i++) {
                 String id = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getText();
                 String type = ctx.structDefinition().fieldDefinition(i).typeName().getText();
-                TypeDefinition.Field field = new TypeDefinition.Field(id, type);
+                int type_size = TypeResolver.resolveFieldTypeSize(type);
+                TypeDefinition.Field field = new TypeDefinition.Field(id, type, type_size);
                 fields.add(field);
             }
         }
@@ -522,12 +523,23 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
     @Override
     public Statement visitVariableDecleration(VariableDeclerationContext ctx) {
-        // TODO Auto-generated method stub
         // int a;
         // Cat b;
 
         String type = ctx.typeName().getText();
         String varId = ctx.IDENTIFIER().getText();
+
+        if (ctx.typeName().primaryTypeName() != null) {
+            if (ctx.typeName().primaryTypeName().IDENTIFIER() != null) {
+                TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+
+                if (td == null) {
+                    int line = ctx.typeName().primaryTypeName().IDENTIFIER().getSymbol().getLine();
+                    int col = ctx.typeName().primaryTypeName().IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": type " + type + " cannot be resolved!");
+                }
+            }
+        }
 
         VariableDecleration v_dec = new VariableDecleration(type, varId);
 
@@ -545,6 +557,19 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     public Statement visitVariableDefinition(VariableDefinitionContext ctx) {
         String type = ctx.typeName().getText();
         String varId = ctx.IDENTIFIER().getText();
+
+        if (ctx.typeName().primaryTypeName() != null) {
+            if (ctx.typeName().primaryTypeName().IDENTIFIER() != null) {
+                TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+
+                if (td == null) {
+                    int line = ctx.typeName().primaryTypeName().IDENTIFIER().getSymbol().getLine();
+                    int col = ctx.typeName().primaryTypeName().IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": type " + type + " cannot be resolved!");
+                }
+            }
+        }
+
         Statement exprStmt = visit(ctx.expressionStmt());
 
         String exprType = ((ExpressionStmt)exprStmt).getType();
