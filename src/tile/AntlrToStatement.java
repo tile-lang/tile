@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -306,17 +307,23 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     @Override
     public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
         String typeName = ctx.IDENTIFIER().getText();
-        List<TypeDefinition.Field> fields = null;
+        HashMap<String, TypeDefinition.Field> fields = null;
         TypeDefinition.Kind kind = null;
         if (ctx.structDefinition() != null) {
-            fields = new ArrayList<>();
+            fields = new HashMap<>();
             kind = TypeDefinition.Kind.STRUCT;
             for (int i = 0; i < ctx.structDefinition().fieldDefinition().size(); i++) {
                 String id = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getText();
                 String type = ctx.structDefinition().fieldDefinition(i).typeName().getText();
                 int type_size = TypeResolver.resolveFieldTypeSize(type);
                 TypeDefinition.Field field = new TypeDefinition.Field(id, type, type_size);
-                fields.add(field);
+                if (!fields.containsKey(id)) {
+                    fields.put(id, field);
+                } else {
+                    int line = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getSymbol().getLine();
+                    int col = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + " " + id + " field is already defined in " + typeName + "!");
+                }
             }
         }
 

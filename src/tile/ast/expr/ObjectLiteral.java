@@ -1,5 +1,7 @@
 package tile.ast.expr;
 
+import java.util.Map;
+
 import tile.ast.base.Expression;
 import tile.ast.stmt.TypeDefinition;
 
@@ -19,8 +21,8 @@ public class ObjectLiteral implements Expression {
     public String generateTasm(String generatedCode) {
         // allocate
         int totalSize = 0;
-        for (int i = 0; i < typeDef.getFields().size(); i++) {
-            totalSize += typeDef.getFields().get(i).type_size;
+        for (Map.Entry<String, TypeDefinition.Field> entry : typeDef.getFields().entrySet()) {
+            totalSize += entry.getValue().type_size;
         }
         generatedCode += "    ; type " + type + "\n";
         generatedCode += "    push " + totalSize + "\n";

@@ -1,5 +1,6 @@
 package tile.ast.stmt;
 
+import java.util.HashMap;
 import java.util.List;
 
 import tile.ast.base.Statement;
@@ -25,10 +26,10 @@ public class TypeDefinition implements Statement {
         }
     }
 
-    private List<Field> fields;     // for struct
+    private HashMap<String, Field> fields;     // for struct
     private List<String> variants;  // for union
 
-    public TypeDefinition(String typeName, Kind kind, List<Field> fields) {
+    public TypeDefinition(String typeName, Kind kind, HashMap<String, Field> fields) {
         this.typeName = typeName;
         this.kind = kind;
         this.fields = fields;
@@ -42,7 +43,7 @@ public class TypeDefinition implements Statement {
         return generatedCode;
     }
 
-    public List<Field> getFields() {
+    public HashMap<String, Field> getFields() {
         return fields;
     }
 }

@@ -598,19 +598,10 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 // traverse {.identifier} and typedefinition fields to see if they matched
                 if (ctx.objectLiteralFieldAssignment() != null) {
                     int[] assignedFields = new int[td.getFields().size()];
-                    List<Integer> assignedFieldsCheck = new ArrayList<>(); // to check if there is such a field
                     for (int i = 0; i < ctx.objectLiteralFieldAssignment().size(); i++) {
                         String objLitFieldId = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getText();
 
-                        for (int j = 0; j < td.getFields().size(); j++) {
-                            if (objLitFieldId.equals(td.getFields().get(j).id)) {
-                                assignedFieldsCheck.add(i);
-                                assignedFields[j] = 1;
-                                break;
-                            }                            
-                        }
-
-                        if (!assignedFieldsCheck.contains(i)) {
+                        if (td.getFields().get(objLitFieldId) == null) {
                             int line = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getSymbol().getLine();
                             int col = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getSymbol().getCharPositionInLine();
                             Log.error(line + ":" + col + ": " + type + " doesn't have a field " + objLitFieldId + "!");
