@@ -42,6 +42,7 @@ import tile.ast.expr.EqualityExpression;
 import tile.ast.expr.FuncCallExpression;
 import tile.ast.expr.LogicalExpression;
 import tile.ast.expr.MultiplicativeExpression;
+import tile.ast.expr.ObjectAccessor;
 import tile.ast.expr.ObjectLiteral;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
@@ -634,8 +635,51 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitObjectAccessor(ObjectAccessorContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitObjectAccessor(ctx);
+        String identifier = ctx.IDENTIFIER(0).getText();
+        StringBuilder varType = new StringBuilder();
+        int tasmIdx = -1;
+        AtomicBoolean isGlobal = new AtomicBoolean(false);
+        try {
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType, isGlobal);
+            // TODO: use isGlobal!!!
+        } catch (Exception e) {
+            int line = ctx.IDENTIFIER(0).getSymbol().getLine();
+            int col = ctx.IDENTIFIER(0).getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": variable " + "'" + identifier + "' is not defined before use!");
+        }
+
+        String type = varType.toString();
+        TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+
+
+        if (ctx.objectAccessor() == null) {
+            String fieldId = ctx.IDENTIFIER(1).getText();
+            if (td != null) {
+                td.getFields().get(fieldId);
+                if (td.getFields().get(fieldId) == null) {
+                    int line = ctx.IDENTIFIER(1).getSymbol().getLine();
+                    int col = ctx.IDENTIFIER(1).getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": '" + identifier + ": " + type + "'' doesn't have a field " + fieldId + "!");
+                }
+            }
+
+            ObjectAccessor oa = new ObjectAccessor(fieldId, td, tasmIdx, null);
+            if (isGlobal.get() == true) {
+                oa.setAsGlobal();
+            }
+
+            return oa;
+        } else {
+            
+            ObjectAccessor accessor = (ObjectAccessor)visit(ctx.objectAccessor());
+
+            ObjectAccessor oa = new ObjectAccessor(null, td, tasmIdx, accessor);
+            if (isGlobal.get() == true) {
+                oa.setAsGlobal();
+            }
+
+            return oa;
+        }        
     }
 
 }

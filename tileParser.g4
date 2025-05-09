@@ -48,6 +48,7 @@ expressionStmt
 expression
     : primaryExpression
     | unaryExpression
+    | objectAccessor
     | arrayIndexAccessor
     | arrayValuedInitializer
     | arraySizedInitializer
@@ -89,6 +90,7 @@ objectLiteralFieldAssignment
 
 objectAccessor
     : IDENTIFIER '.' IDENTIFIER
+    | IDENTIFIER '.' objectAccessor
     ;
 
 unaryExpression
@@ -154,6 +156,8 @@ castExpression
     | funcCallExpression
     | '(' typeName ')' arrayIndexAccessor
     | arrayIndexAccessor
+    | '(' typeName ')' objectAccessor
+    | objectAccessor
     ;
 
 multiplicativeExpression

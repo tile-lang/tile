@@ -165,7 +165,7 @@ public class TypeResolver {
     }
 
     public static int resolveFieldTypeSize(String type) {
-        if (isArrayType(type)) {
+        if (isArrayType(type) || type.equals("string")) {
             return 8; // FIXME: check if this is on x64 or x86 tvm (get it as cmd arg)
         }
         switch (type) {

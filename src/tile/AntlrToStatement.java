@@ -468,6 +468,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         String varId = "";
         if (ctx.arrayIndexAccessorSetter() != null) {
             varId = ctx.arrayIndexAccessorSetter().IDENTIFIER().getText();
+        } else if (ctx.objectAccessor() != null) {
+            varId = ctx.objectAccessor().IDENTIFIER(0).getText();
         } else {
             varId = ctx.IDENTIFIER().getText();
         }
@@ -484,6 +486,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             if (ctx.arrayIndexAccessorSetter() != null) {
                 line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
                 col = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getCharPositionInLine();
+            } else if (ctx.objectAccessor() != null) {
+                
             } else {
                 line = ctx.IDENTIFIER().getSymbol().getLine();
                 col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
