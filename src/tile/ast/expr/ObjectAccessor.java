@@ -33,9 +33,8 @@ public class ObjectAccessor implements Expression {
     @Override
     public String generateTasm(String generatedCode) {
         int size = typeDefinition.getFields().get(fieldId).type_size;
-        int offset = 0;
+        int offset = typeDefinition.getFields().get(fieldId).offset;
 
-        // TODO: implement here
         generatedCode = genLoadCode(generatedCode);
         generatedCode += "    deref ; dereferance\n";
         generatedCode += "    push " + offset + "\n";
@@ -46,7 +45,6 @@ public class ObjectAccessor implements Expression {
 
     @Override
     public String getType() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getType'");
+        return typeDefinition.getFields().get(fieldId).type;
     }
 }

@@ -18,11 +18,13 @@ public class TypeDefinition implements Statement {
         public String id;
         public String type;
         public int type_size;
+        public int offset;
 
-        public Field(String id, String type, int type_size) {
+        public Field(String id, String type, int type_size, int offset) {
             this.id = id;
             this.type = type;
             this.type_size = type_size;
+            this.offset = offset;
         }
     }
 

@@ -22,6 +22,7 @@ import gen.antlr.tile.tileParser.IfStmtContext;
 import gen.antlr.tile.tileParser.LoopStmtContext;
 import gen.antlr.tile.tileParser.ImportStmtContext;
 import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
+import gen.antlr.tile.tileParser.ObjectAccessorContext;
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
 import gen.antlr.tile.tileParser.SelectionStmtContext;
@@ -312,11 +313,13 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         if (ctx.structDefinition() != null) {
             fields = new HashMap<>();
             kind = TypeDefinition.Kind.STRUCT;
+            int offset = 0;
             for (int i = 0; i < ctx.structDefinition().fieldDefinition().size(); i++) {
                 String id = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getText();
                 String type = ctx.structDefinition().fieldDefinition(i).typeName().getText();
                 int type_size = TypeResolver.resolveFieldTypeSize(type);
-                TypeDefinition.Field field = new TypeDefinition.Field(id, type, type_size);
+                TypeDefinition.Field field = new TypeDefinition.Field(id, type, type_size, offset);
+                offset += type_size;
                 if (!fields.containsKey(id)) {
                     fields.put(id, field);
                 } else {
@@ -466,10 +469,21 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     @Override
     public Statement visitVariableAssignment(VariableAssignmentContext ctx) {
         String varId = "";
+        List<String> fieldIds = new ArrayList<>();
         if (ctx.arrayIndexAccessorSetter() != null) {
             varId = ctx.arrayIndexAccessorSetter().IDENTIFIER().getText();
         } else if (ctx.objectAccessor() != null) {
             varId = ctx.objectAccessor().IDENTIFIER(0).getText();
+            ObjectAccessorContext oac = ctx.objectAccessor();
+            if (oac.IDENTIFIER(1) != null) {
+                fieldIds.add(oac.IDENTIFIER(1).getText());
+            }
+            while (oac.objectAccessor() != null) {
+                oac = oac.objectAccessor();
+                fieldIds.add(oac.IDENTIFIER(0).getText());
+            }
+
+            Log.debug(fieldIds.toString());
         } else {
             varId = ctx.IDENTIFIER().getText();
         }
@@ -487,7 +501,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
                 col = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getCharPositionInLine();
             } else if (ctx.objectAccessor() != null) {
-                
+                line = ctx.objectAccessor().IDENTIFIER(0).getSymbol().getLine();
+                col = ctx.objectAccessor().IDENTIFIER(0).getSymbol().getCharPositionInLine();
             } else {
                 line = ctx.IDENTIFIER().getSymbol().getLine();
                 col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
@@ -520,6 +535,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 exprs.add(expr);
             }
             typeInfo = TypeResolver.resolveVariableDefArrayType(varTypeStr, exprType, dim);
+        } else if (ctx.objectAccessor() != null) {
+            typeInfo = TypeResolver.resolveVariableDefUserDefType(varTypeStr, exprType, fieldIds);
         } else {
             typeInfo = TypeResolver.resolveVariableDefType(varTypeStr, exprType);
         }

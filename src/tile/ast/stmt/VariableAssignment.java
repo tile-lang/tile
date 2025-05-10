@@ -55,14 +55,29 @@ public class VariableAssignment implements Statement {
             }
         }
 
-        if (typeInfo.info_array == null) {
+        if (typeInfo.info_array == null && typeInfo.info_object == null) {
             generatedCode += "    ";
             if (isGlobal) {
                 generatedCode += "gstore " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
             } else {
                 generatedCode += "store " + tasmIdx + " ; " + typeInfo.var_type + " " + varId + "\n";
             }
-        } else {
+        }  else if (typeInfo.info_object != null) {
+
+            String lastFieldId = typeInfo.info_object.fieldIds.getLast();
+            int type_size = typeInfo.info_object.fields.get(lastFieldId).type_size;
+            int offset = typeInfo.info_object.fields.get(lastFieldId).offset;
+
+            if (isGlobal) {
+                generatedCode += "    gload " + tasmIdx + "\n";
+            } else {
+                generatedCode += "    load " + tasmIdx + "\n";
+            }
+            // FIXME: fix here hset created for arrays
+            generatedCode += "    push " + offset + "\n";
+            generatedCode += "    push " + type_size + "\n";
+            generatedCode += "    hset\n";
+        } else if (typeInfo.info_array != null) {
             if (isGlobal) {
                 generatedCode += "    gload " + tasmIdx + "\n";
             } else {
