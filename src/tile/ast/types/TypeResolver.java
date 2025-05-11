@@ -55,11 +55,18 @@ public class TypeResolver {
         public boolean auto_cast = false;
         public String expr_type = null;
         public TypeInfoArray info_array = null;
+        public TypeInfoObject info_object = null;
     }
     
     public static class TypeInfoArray {
         public String type;
         public int element_size;
+    }
+
+    public static class TypeInfoObject {
+        public String type;
+        public HashMap<String, TypeDefinition.Field> fields;
+        public List<String> fieldIds;
     }
 
     public static boolean isNumericType(String type) {
@@ -153,6 +160,21 @@ public class TypeResolver {
     }
 
     private static int resolveArrayTypeSize(String type) {
+        switch (type) {
+            case "int":
+            case "float": return 4;
+            case "char": return 1;
+        }
+
+        // composite type
+        // FIXME:
+        return -1;
+    }
+
+    public static int resolveFieldTypeSize(String type) {
+        if (isArrayType(type) || type.equals("string")) {
+            return 8; // FIXME: check if this is on x64 or x86 tvm (get it as cmd arg)
+        }
         switch (type) {
             case "int":
             case "float": return 4;
@@ -261,12 +283,16 @@ public class TypeResolver {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
             ti.result_type = "int";
-        } else if (lhs.equals("bool") || rhs.equals("bool")) {
+        } else if (lhs.equals("char") && rhs.equals("char")) {
+            ti.lhs_type = lhs;
+            ti.rhs_type = rhs;
+            ti.result_type = "char";
+        } else if (lhs.equals("bool") && rhs.equals("bool")) {
             ti.lhs_type = lhs;
             ti.rhs_type = rhs;
             ti.result_type = "bool";
         } else {
-            // err handling could be neccesarry
+            Log.error("try casting one type to another if possible " + "(" + lhs + ")" + rhs);
         }
 
         TypeInfoBinopBool tb = new TypeInfoBinopBool();
@@ -391,7 +417,7 @@ public class TypeResolver {
 
     public static TypeInfoVariableDef resolveVariableDefArrayType(String var_type, String expr_type, int reducedDim) {
         if (!isArrayType(var_type)) {
-            Log.error("it's not an array type");
+            Log.error(var_type + " is not an array type");
             return null;
         }
         TypeInfoVariableDef vd = new TypeInfoVariableDef();
@@ -404,6 +430,28 @@ public class TypeResolver {
         vd.info_array.type = var_type;
         vd.info_array.element_size = resolveArrayTypeSize(getBaseType(var_type));
 
+        return vd;
+    }
+
+    public static TypeInfoVariableDef resolveVariableDefUserDefType(String var_type, String expr_type, List<String> fieldIds) {
+        if (!isUserDefinedType(var_type)) {
+            Log.error(var_type + " is not a user defined type");
+            return null;
+        }
+        TypeInfoVariableDef vd = new TypeInfoVariableDef();
+        // TODO: check for auto cast
+        vd.expr_type = expr_type;
+        vd.var_type = var_type;
+        vd.result_type = var_type;
+
+        // FIXME: make it for object inside object as well
+        TypeDefinition td = TypeResolver.userTypeDefs.get(var_type);
+        HashMap<String, TypeDefinition.Field> fields = td.getFields();
+
+
+        vd.info_object = new TypeInfoObject();
+        vd.info_object.fields = fields;
+        vd.info_object.fieldIds = fieldIds;
         return vd;
     }
 

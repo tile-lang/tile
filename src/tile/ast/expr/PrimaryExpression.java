@@ -1,6 +1,5 @@
 package tile.ast.expr;
 
-import java.sql.PreparedStatement;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Map.Entry;
@@ -18,6 +17,7 @@ public class PrimaryExpression implements Expression {
     private boolean isIdentifier;
     private int identifierTasmIdx;
     private int dataTasmIdx;
+    private boolean isGlobal;
 
     public PrimaryExpression(String unaryOp, String value, String type, boolean isIdentifier, int tasmIdx, int dataTasmIdx) {
         if (unaryOp != null) {
@@ -34,6 +34,7 @@ public class PrimaryExpression implements Expression {
         this.identifierTasmIdx = tasmIdx;
         this.dataTasmIdx = dataTasmIdx;
         this.unaryOp = unaryOp;
+        isGlobal = false;
     }
 
     @Override
@@ -41,8 +42,16 @@ public class PrimaryExpression implements Expression {
         return type;
     }
 
+    private String genLoadCode(String generatedCode) {
+        if (isGlobal) {
+            generatedCode += "    gload " + identifierTasmIdx + "\n";
+        } else {
+            generatedCode += "    load " + identifierTasmIdx + "\n";
+        }
+        return generatedCode;
+    }
+
     private String generateTasmForPrimitive(String generatedCode) {
-        generatedCode += "    ";
         if (isIdentifier) {
             boolean isUnaryNotNull = unaryOp != null;
             if (isUnaryNotNull) {
@@ -56,7 +65,7 @@ public class PrimaryExpression implements Expression {
                     }
                 }
             }
-            generatedCode += "load " + identifierTasmIdx + "\n";
+            generatedCode = genLoadCode(generatedCode);
             if (isUnaryNotNull) {
                 if (unaryOp.equals("-")) {
                     if (type.equals("int")) {
@@ -78,7 +87,7 @@ public class PrimaryExpression implements Expression {
                         generatedCode += "    decf" + " ; --\n";
                     }
                     generatedCode += "    store " + identifierTasmIdx + "\n";
-                    generatedCode += "    load " + identifierTasmIdx + "\n";
+                    generatedCode = genLoadCode(generatedCode);
                 } else if (unaryOp.equals("++")) {
                     if (type.equals("int")) {
                         generatedCode += "    inc" + " ; ++\n";
@@ -86,12 +95,19 @@ public class PrimaryExpression implements Expression {
                         generatedCode += "    incf" + " ; ++\n";
                     }
                     generatedCode += "    store " + identifierTasmIdx + "\n";
-                    generatedCode += "    load " + identifierTasmIdx + "\n";
+                    generatedCode = genLoadCode(generatedCode);
                 }
             }
         } else {
-            generatedCode += "push " + value + "\n";
+            generatedCode += "    push " + value + "\n";
         }
+        return generatedCode;
+    }
+
+    String generateTasmForArray(String generatedCode) {
+        // we need to deref it to reach to the actual listing values on heap (gc_block->value which is the first component of gc_block) IMPORTANT NOTE: this only for passing tile arrays to c functions that gets c arrays as parameter.
+        generatedCode = genLoadCode(generatedCode);
+        // generatedCode += "    deref ; deref array\n"; // NO NEED IT NORMALLY
         return generatedCode;
     }
 
@@ -119,11 +135,17 @@ public class PrimaryExpression implements Expression {
             generatedCode = generateTasmForPrimitive(generatedCode);
         } else if (TypeResolver.isStringType(type)) {
             generatedCode = generateTasmForString(generatedCode);
+        } else if (TypeResolver.isArrayType(type)) {
+            generatedCode = generateTasmForArray(generatedCode);
         } else {
-            generatedCode += "    load " + identifierTasmIdx + "\n";
+            generatedCode = genLoadCode(generatedCode);
         }
 
         return generatedCode;
+    }
+
+    public void setAsGlobal() {
+        isGlobal = true;
     }
     
 }

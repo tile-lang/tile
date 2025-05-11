@@ -1,0 +1,173 @@
+/*
+    03.05.2025
+    Mehmet Can Özkuzukıran
+    make app ARGS=".\examples\tic-tac-toe\tic-tac-toe.tile -o .\examples\tic-tac-toe\tic-tac-toe.bin -gen-tasm -l raylib.dll"
+    tvm .\examples\tic-tac-toe\tic-tac-toe.bin
+*/
+
+native func InitWindow(width: ci32, height: ci32, title: cptr): cvoid;
+native func WindowShouldClose(): ci8;
+native func CloseWindow(): cvoid;
+native func BeginDrawing(): cvoid;
+native func EndDrawing(): cvoid;
+native func ClearBackground(color: cu32): cvoid;
+native func SetTargetFPS(fps: ci32): cvoid;
+native func DrawRectangle(posX: ci32, posY: ci32, width: ci32, height: ci32, color: cu32): cvoid;
+native func DrawLine(ci32, ci32, ci32, ci32, cu32): cvoid;
+native func IsKeyDown(key: ci16): ci8;
+native func DrawText(text: cptr, posX: ci32, posY: ci32, fontSize: ci32, color: cu32): cvoid;
+
+
+func drawGrid(grid: char[], square_colors: int[], selected: int, current_player: char): void {
+    cellSize: int = 80;
+    gap: int = 10;
+    offsetX: int = 30;
+    offsetY: int = 30;
+
+    for (i: int = 0; i < 9; i++) {
+        x: int = offsetX + (i % 3) * (cellSize + gap);
+        y: int = offsetY + (i / 3) * (cellSize + gap);
+
+        DrawRectangle(x, y, cellSize, cellSize, square_colors[i]);
+
+        // Draw selection border
+        if (i == selected) {
+            DrawRectangle(x, y, cellSize, cellSize, 0xCCCC00FF);
+        }
+    }
+}
+
+
+func print(str: string): void {
+    tasm {
+        "load 0",
+        "puts"
+    }
+}
+func printChar(c: char): void {
+    tasm {
+        "load 0",
+        "putc"
+    }
+}
+
+
+func checkWinnerByColor(square_colors: int[], color: int): bool {
+    // Row 1
+    if (square_colors[0] == color && square_colors[1] == color && square_colors[2] == color) { return true; }
+    // Row 2
+    if (square_colors[3] == color && square_colors[4] == color && square_colors[5] == color) { return true; }
+    // Row 3
+    if (square_colors[6] == color && square_colors[7] == color && square_colors[8] == color) { return true; }
+    // Column 1
+    if (square_colors[0] == color && square_colors[3] == color && square_colors[6] == color) { return true; }
+    // Column 2
+    if (square_colors[1] == color && square_colors[4] == color && square_colors[7] == color) { return true; }
+    // Column 3
+    if (square_colors[2] == color && square_colors[5] == color && square_colors[8] == color) { return true; }
+    // Cross 1
+    if (square_colors[0] == color && square_colors[4] == color && square_colors[8] == color) { return true; }
+    // Cross 2
+    if (square_colors[2] == color && square_colors[4] == color && square_colors[6] == color) { return true; }
+
+    return false;
+}
+
+func main(argc: int): void {
+    InitWindow(400, 400, "Tic Tac Toe");
+    SetTargetFPS(10);
+
+    EMPTY: char = ' ';
+    grid: char[] = char[9];
+    square_colors: int[] = int[9];
+    for (i: int = 0; i < 9; i++) {
+        square_colors[i] = 0xFFFFFFFF; // White by default
+    }
+    current_player: char = 'X';
+    winner: char = ' ';
+    moves: int = 0;
+    selected: int = 0;
+    showError: bool = false;
+    keyProcessed: bool = false;
+
+    for (i: int = 0; i < 9; i++) {
+        grid[i] = EMPTY;
+    }
+
+    while ((bool)WindowShouldClose() == false && winner == ' ' && moves < 9) {
+        showError = false;
+
+        if (!(bool)IsKeyDown('E')) {
+            if ((bool)IsKeyDown('W') && selected >= 3) {
+                selected = selected - 3;
+            } else if ((bool)IsKeyDown('S') && selected <= 5) {
+                selected = selected + 3;
+            } else if ((bool)IsKeyDown('A') && selected % 3 != 0) {
+                selected = selected - 1;
+            } else if ((bool)IsKeyDown('D') && selected % 3 != 2) {
+                selected = selected + 1;
+            }
+        }
+
+        if ((bool)IsKeyDown('E')) {
+            if (keyProcessed == false ) {
+                keyProcessed = true;
+                if (square_colors[selected] == 0xFFFFFFFF) {
+                    grid[selected] = current_player;
+                    moves = moves + 1;
+                    if (current_player == 'X') {
+                        square_colors[selected] = 0x00FF00FF;
+                    } else {
+                        square_colors[selected] = 0xFF0000FF;
+                    }
+                    if (checkWinnerByColor(square_colors, 0x00FF00FF)) {
+                        winner = 'X';
+                    } else if (checkWinnerByColor(square_colors, 0xFF0000FF)) {
+                        winner = 'O';
+                    }else if (moves == 9) {
+                        winner = 'D';
+                    }
+                    if (winner == ' ') {
+                        if (current_player == 'X') {
+                            current_player = 'O';
+                        } else {
+                            current_player = 'X';
+                        }
+                    }
+                } else {
+                    showError = true;
+                }
+            }
+        } else {
+            keyProcessed = false;
+        }
+
+        BeginDrawing();
+        ClearBackground(0x808080FF);
+        drawGrid(grid, square_colors, selected, current_player);
+        if (showError) {
+            DrawText("Invalid Move!", 100, 370, 20, 0xFF0000FF);
+        }
+        EndDrawing();
+    }
+
+    while ((bool)WindowShouldClose() == false) {
+        BeginDrawing();
+        ClearBackground(0x808080FF);
+        drawGrid(grid, square_colors, selected, current_player);
+
+        if (winner == 'X') {
+            DrawText("Winner: ", 100, 370, 20, 0x00FF00FF);
+            DrawText("Green", 220, 370, 20, 0x00FF00FF);
+        }
+        else if (winner == 'O') {
+            DrawText("Winner: ", 100, 370, 20, 0xFF0000FF);
+            DrawText("Red", 220, 370, 20, 0xFF0000FF);
+        }
+        else if (winner == 'D') {
+            DrawText("Draw!", 100, 370, 20, 0x00FF00FF);
+        }
+        EndDrawing();
+    }
+    CloseWindow();
+}

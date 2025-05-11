@@ -1,36 +1,22 @@
 /*
-    01.14.2025
+    04.26.2025
     Muhammed Yasinhan Yaşar
 */
 
-native func InitWindow(width: ci32, height: ci32, title: cptr): cvoid;
-native func WindowShouldClose(): ci8;
-native func CloseWindow(): cvoid;
-native func BeginDrawing(): cvoid;
-native func EndDrawing(): cvoid;
-native func ClearBackground(color: cu32): cvoid;
-native func SetTargetFPS(fps: ci32): cvoid;
-native func GetFrameTime(): cf32;
-native func DrawRectangle(posX: ci32, posY: ci32, width: ci32, height: ci32, color: cu32): cvoid;
-native func DrawCircle(posX: ci32, posY: ci32, radius: cf32, color: cu32): cvoid;
-native func DrawLine(ci32, ci32, ci32, ci32, cu32): cvoid;
-native func IsKeyDown(key: ci16): ci8;
+import "../tileraylib.tile";
 
-native func SetRandomSeed(seed: cu32): cvoid;
-native func GetRandomValue(min: ci32, max: ci32): ci32;
+screenWidth: int = 400;
+screenHeight: int = screenWidth;
 
-
-func run_game(width: int, height: int): void {
-
-    dirs: int[] = int[50];
+func run_game(): void {
+    
     prev_dirs: int[] = int[50];
     posx: float[] = float[50];
     posy: float[] = float[50];
+    dirs: int[] = int[50];
 
-    SetRandomSeed(4642);
-    
     snake_count: int = 1;
-    snake_step: int = width / 10;
+    snake_step: int = screenWidth / 10;
     snake_size: int = snake_step;
 
     cherry_posx: float = GetRandomValue(0, 10) * snake_size;
@@ -46,7 +32,7 @@ func run_game(width: int, height: int): void {
 
     bool game_over = false;
 	// Main game loop
-    while (WindowShouldClose() == false && game_over == false) {  // ESC closes the window as well
+    while ((bool)WindowShouldClose() == false && game_over == false) {  // ESC closes the window as well
 
         // Update game logic based on timer
         move_timer = move_timer + GetFrameTime();
@@ -80,16 +66,16 @@ func run_game(width: int, height: int): void {
                 }
                 
 
-                if (posx[i] + snake_size / 2 > width) {
+                if (posx[i] + snake_size / 2 > screenWidth) {
                     posx[i] = 0;
                 } else if (posx[i] <= -snake_size) {
-                    posx[i] = width - snake_size;
+                    posx[i] = screenWidth - snake_size;
                 }
         
-                if (posy[i] + snake_size / 2 > height) {
+                if (posy[i] + snake_size / 2 > screenHeight) {
                     posy[i] = 0;
                 } else if (posy[i] <= -snake_size) {
-                    posy[i] = height - snake_size;
+                    posy[i] = screenHeight - snake_size;
                 }
 
                 if (posx[0] == posx[i] && posy[0] == posy[i] && i != 0) {
@@ -144,13 +130,13 @@ func run_game(width: int, height: int): void {
 
             // tiled background
             int line_color = 0x613701FF;
-            for (i: int = 0; i < width;) {
+            for (i: int = 0; i < screenWidth;) {
                 i = i + snake_size;
-                DrawLine(i, 0, i, height, line_color);
+                DrawLine(i, 0, i, screenHeight, line_color);
             }
-            for (i: int = 0; i < height;) {
+            for (i: int = 0; i < screenHeight;) {
                 i = i + snake_size;
-                DrawLine(0, i, width, i, line_color);
+                DrawLine(0, i, screenWidth, i, line_color);
             }
 
         EndDrawing();
@@ -159,15 +145,15 @@ func run_game(width: int, height: int): void {
 }
 
 
-func main(argc: int): void {
 
-    screenWidth: int = 400;
-    screenHeight: int = screenWidth;
+func main(argc: int): void {
 
     InitWindow(screenWidth, screenHeight, "Snake Game");
     SetTargetFPS(60);   // Set our game to run at 60 frames-per-second
 
-	run_game(screenWidth, screenHeight);
+    SetRandomSeed(4642);
+
+	run_game();
 
     // De-Initialization
     CloseWindow();

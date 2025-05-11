@@ -8,4 +8,6 @@ public interface Variable {
     public String getType();
 
     public String getVarId();
+
+    public void setAsGlobal();
 }

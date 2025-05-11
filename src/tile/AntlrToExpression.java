@@ -18,6 +18,8 @@ import gen.antlr.tile.tileParser.InclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.LogicalAndExpressionContext;
 import gen.antlr.tile.tileParser.LogicalOrExpressionContext;
 import gen.antlr.tile.tileParser.MultiplicativeExpressionContext;
+import gen.antlr.tile.tileParser.ObjectAccessorContext;
+import gen.antlr.tile.tileParser.ObjectLiteralExpressionContext;
 import gen.antlr.tile.tileParser.PrimaryExpressionContext;
 import gen.antlr.tile.tileParser.RelationalExpressionContext;
 import gen.antlr.tile.tileParser.ShiftExpressionContext;
@@ -25,6 +27,7 @@ import gen.antlr.tile.tileParser.UnaryExpressionContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
@@ -39,11 +42,13 @@ import tile.ast.expr.EqualityExpression;
 import tile.ast.expr.FuncCallExpression;
 import tile.ast.expr.LogicalExpression;
 import tile.ast.expr.MultiplicativeExpression;
+import tile.ast.expr.ObjectAccessor;
+import tile.ast.expr.ObjectLiteral;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.ShiftExpression;
 import tile.ast.expr.UnaryExpression;
-import tile.ast.stmt.ForStmt;
+import tile.ast.stmt.TypeDefinition;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
@@ -106,14 +111,19 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 String identifier = ctx.IDENTIFIER().getText();
                 StringBuilder varType = new StringBuilder();
                 int tasmIdx = -1;
+                AtomicBoolean isGlobal = new AtomicBoolean(false);
                 try {
-                    tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType);
+                    tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType, isGlobal);
                 } catch (Exception e) {
                     int line = ctx.IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + identifier + "' is not defined before use!");
+                    int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": variable " + "'" + identifier + "' is not defined before use!");
                 }
 
                 expr = new PrimaryExpression(unaryOp, identifier, varType.toString(), true, tasmIdx, 0);
+                if (isGlobal.get() == true) {
+                    ((PrimaryExpression)expr).setAsGlobal();
+                }
 
             }
         } else if (count == 3 && ctx.getChild(0).getText().equals("(") && ctx.getChild(2).getText().equals(")")) {
@@ -256,6 +266,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         String funcId = ctx.IDENTIFIER().getText();
         TypeFuncCall type = new TypeFuncCall();
         int line = ctx.IDENTIFIER().getSymbol().getLine();
+        int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
 
         boolean is_native = false;
 
@@ -269,7 +280,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 type.result_type = Program.nativeFuncDeclSymbols.get(funcId).getReturnType();
                 is_native = true;
             } catch (Exception e) {
-                Log.error(line + ": function " + funcId + " is not defined before called.");
+                Log.error(line + ":" + col + ": function " + funcId + " is not defined before called.");
+                return null; // FIXME: find a better way and consider func overloading as well for the future!
             }
         }
 
@@ -283,7 +295,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         // TODO: check nativeness
         if (ctx.primaryExpression() == null && ctx.funcCallExpression() == null) {
             if (arg_size != ctx.expression().size()) {
-                Log.error(line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " +ctx.expression().size());
+                Log.error(line + ":" + col + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " +ctx.expression().size());
                 return null;
             }
     
@@ -293,7 +305,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             }
         } else {
             if (arg_size != ctx.expression().size() + 1) {
-                Log.error(line + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " + (ctx.expression().size() + 1));
+                Log.error(line + ":" + col + ": function call" + funcId + " doesn't match by argument count, expected " + arg_size + " but got " + (ctx.expression().size() + 1));
                 return null;
             }
             if (ctx.primaryExpression() != null) {
@@ -340,7 +352,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
             if (!lhs_type.equals("bool") || !rhs_type.equals("bool")) {
                 int line = ctx.stop.getLine();
-                Log.warning(line + ": logical expressions type should be a bool type!");
+                int col = ctx.stop.getCharPositionInLine();
+                Log.warning(line + ":" + col + ": logical expressions type should be a bool type!");
             }
             TypeInfoLogicalBinop type = TypeResolver.resolveBinopLogicalType(lhs_type, rhs_type);
             left = new LogicalExpression(left, operator, right, type);
@@ -350,8 +363,31 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
 
     @Override
     public Expression visitLogicalOrExpression(LogicalOrExpressionContext ctx) {
-        // TODO Auto-generated method stub
-        return super.visitLogicalOrExpression(ctx);
+        if (ctx.logicalAndExpression().size() == 1) {
+            return visit(ctx.logicalAndExpression(0));
+        }
+
+        // Otherwise, process the operator and operands.
+        Expression left = visit(ctx.logicalAndExpression(0)); // The first operand.
+        for (int i = 1; i < ctx.logicalAndExpression().size(); i++) {
+            // Get the operator (* or /).
+            String operator = ctx.getChild((i * 2) - 1).getText(); // Operators are at odd indices.
+
+            // Visit the right operand.
+            Expression right = visit(ctx.logicalAndExpression(i));
+
+            String lhs_type = left.getType();
+            String rhs_type = right.getType();
+
+            if (!lhs_type.equals("bool") || !rhs_type.equals("bool")) {
+                int line = ctx.stop.getLine();
+                int col = ctx.stop.getCharPositionInLine();
+                Log.warning(line + ":" + col + ": logical expressions type should be a bool type!");
+            }
+            TypeInfoLogicalBinop type = TypeResolver.resolveBinopLogicalType(lhs_type, rhs_type);
+            left = new LogicalExpression(left, operator, right, type);
+        }
+        return left;
     }
 
     @Override
@@ -410,7 +446,7 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             Expression left = visit(exprs.get(0));
             Expression right = visit(exprs.get(1));
             String operator = ctx.getChild(1).getText();
-            return new ShiftExpression(left, operator, right, new TypeInfoBinopInt());
+            return new ShiftExpression(left, operator, right, TypeResolver.resolveBinopShiftType(left.getType(), right.getType()));
         } else if (exprs.size() == 1) {
             return visit(exprs.get(0));
         }
@@ -438,14 +474,19 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 String incDecOp = ctx.incDecOperator().getText();
                 if (ctx.primaryExpression().IDENTIFIER() != null) {
                     if (!(type.equals("int") || type.equals("float"))) {
-                        Log.error("'++' and '--' operators cannot go before any non-numeric type!");
+                        Log.error("'" + incDecOp + "' operator cannot go before any non-numeric type!");
                     }
                 } else {
-                    Log.error("'++' and '--' operators had to be used with an identifier!");
+                    Log.error("'" + incDecOp + " operator had to be used with an identifier!");
                 }
             }
+        } else {
+            if (ctx.unaryOperator() != null) {
+                String unaryOp = ctx.unaryOperator().getText();
+                expr = visit(ctx.children.get(1));
+                return new UnaryExpression(unaryOp, expr);
+            }
         }
-        // TODO: handle IDENTIFIER and ++ | -- operators !!!
 
         return expr;
     }
@@ -460,7 +501,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             String sizeExprType = expr.getType();
             if (!sizeExprType.equals("int")) {
                 int line = ctx.primaryTypeName().getStop().getLine();
-                Log.error(line + "Array sized initializer must be an 'int' type!");
+                int col = ctx.primaryTypeName().getStop().getCharPositionInLine();
+                Log.error(line + ":" + col + ": Array sized initializer must be an 'int' type!");
             }
             arrSizes.add(expr);
         }
@@ -481,11 +523,14 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         String identifier = ctx.IDENTIFIER().getText();
         StringBuilder varType = new StringBuilder();
         int tasmIdx = -1;
+        AtomicBoolean isGlobal = new AtomicBoolean(false);
         try {
-            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType);
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType, isGlobal);
+            // TODO: use isGlobal!!!
         } catch (Exception e) {
             int line = ctx.IDENTIFIER().getSymbol().getLine();
-            Log.error(line + ": variable " + "'" + identifier + "' is not defined before use!");
+            int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": variable " + "'" + identifier + "' is not defined before use!");
         }
 
         ctx.arrayIndexSpecifier().size();
@@ -497,7 +542,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             Expression expr = visit(ctx.arrayIndexSpecifier(i).expression());
             if (!TypeResolver.isIntType(expr.getType())) {
                 int line = ctx.IDENTIFIER().getSymbol().getLine();
-                Log.error(line + ": Array index specifier must be 'int' type!");
+                int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+                Log.error(line + ":" + col + ": Array index specifier must be 'int' type!");
             }
             exprs.add(expr);
         }
@@ -506,7 +552,12 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         int reducedDim = exprs.size();
         typeInfo = TypeResolver.resolveArrayIndexAccessor(varType.toString(), reducedDim);
 
-        return new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
+        ArrayIndexAccessor aia = new ArrayIndexAccessor(typeInfo, tasmIdx, exprs);
+        if (isGlobal.get() == true) {
+            aia.setAsGlobal();
+        }
+
+        return aia;
     }
 
     @Override
@@ -525,6 +576,110 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         Log.debug("visitForUpdate result " + result);
 
         return result;
+    }
+
+    @Override
+    public Expression visitObjectLiteralExpression(ObjectLiteralExpressionContext ctx) {
+        String type = "";
+        if (ctx.IDENTIFIER() != null) {
+            // Implemented
+            /*
+                a: Animal = Animal {
+                    .name = "asd",
+                    .age = 10
+                }; 
+            */
+            type = ctx.IDENTIFIER().getText();
+            TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+            if (td == null) {
+                int line = ctx.IDENTIFIER().getSymbol().getLine();
+                int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+                Log.error(line + ":" + col + ": literal type " + type + " cannot be resolved!");
+            } else {
+                // traverse {.identifier} and typedefinition fields to see if they matched
+                if (ctx.objectLiteralFieldAssignment() != null) {
+                    int[] assignedFields = new int[td.getFields().size()];
+                    for (int i = 0; i < ctx.objectLiteralFieldAssignment().size(); i++) {
+                        String objLitFieldId = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getText();
+
+                        if (td.getFields().get(objLitFieldId) == null) {
+                            int line = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getSymbol().getLine();
+                            int col = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getSymbol().getCharPositionInLine();
+                            Log.error(line + ":" + col + ": " + type + " doesn't have a field " + objLitFieldId + "!");
+                        }
+                    }
+
+                    ObjectLiteral objLit = new ObjectLiteral(td, type, assignedFields);
+                    return objLit;
+                }
+            }
+
+        } else {
+            // TODO: Not implemented inferring type
+            /*
+                a: Animal = {0}; 
+                a: Animal = {
+                    .name = "asd",
+                    .age = 10
+                }; 
+            */
+            int line = ctx.PUNC_LEFTBRACE().getSymbol().getLine();
+            int col = ctx.PUNC_LEFTBRACE().getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": for custom literal type, type inferring is not implemented yet!");
+        }
+
+
+        
+        return super.visitObjectLiteralExpression(ctx);
+    }
+
+    @Override
+    public Expression visitObjectAccessor(ObjectAccessorContext ctx) {
+        String identifier = ctx.IDENTIFIER(0).getText();
+        StringBuilder varType = new StringBuilder();
+        int tasmIdx = -1;
+        AtomicBoolean isGlobal = new AtomicBoolean(false);
+        try {
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType, isGlobal);
+            // TODO: use isGlobal!!!
+        } catch (Exception e) {
+            int line = ctx.IDENTIFIER(0).getSymbol().getLine();
+            int col = ctx.IDENTIFIER(0).getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": variable " + "'" + identifier + "' is not defined before use!");
+        }
+
+        String type = varType.toString();
+        TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+
+
+        if (ctx.objectAccessor() == null) {
+            String fieldId = ctx.IDENTIFIER(1).getText();
+            if (td != null) {
+                td.getFields().get(fieldId);
+                if (td.getFields().get(fieldId) == null) {
+                    int line = ctx.IDENTIFIER(1).getSymbol().getLine();
+                    int col = ctx.IDENTIFIER(1).getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": '" + identifier + ": " + type + "'' doesn't have a field " + fieldId + "!");
+                }
+            }
+
+            ObjectAccessor oa = new ObjectAccessor(fieldId, td, tasmIdx, null);
+            if (isGlobal.get() == true) {
+                oa.setAsGlobal();
+            }
+
+            return oa;
+        } else {
+            
+            ObjectAccessor accessor = (ObjectAccessor)visit(ctx.objectAccessor());
+
+            ObjectAccessor oa = new ObjectAccessor(null, td, tasmIdx, accessor);
+            if (isGlobal.get() == true) {
+                oa.setAsGlobal();
+            }
+
+            return oa;
+        }        
     }
 
 }

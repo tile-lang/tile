@@ -1,7 +1,7 @@
 package tile.ast.base;
 
 public abstract class Generator {
-    protected String generatedCode;
+    public String generatedCode;
     
     public Generator() {
         generatedCode = new String();

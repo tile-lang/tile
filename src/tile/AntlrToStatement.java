@@ -1,48 +1,66 @@
 package tile;
 
-import java.util.ArrayDeque;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
+import gen.antlr.tile.tileParser;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 import gen.antlr.tile.tileParser.BlockStmtContext;
 import gen.antlr.tile.tileParser.ExpressionStmtContext;
 import gen.antlr.tile.tileParser.ForStmtContext;
-import gen.antlr.tile.tileParser.ForUpdateContext;
 import gen.antlr.tile.tileParser.FuncCallExpressionContext;
 import gen.antlr.tile.tileParser.FuncDefStmtContext;
+import gen.antlr.tile.tileParser.GlobalStatementContext;
 import gen.antlr.tile.tileParser.IfStmtContext;
 import gen.antlr.tile.tileParser.LoopStmtContext;
+import gen.antlr.tile.tileParser.ImportStmtContext;
 import gen.antlr.tile.tileParser.NativeFuncDeclStmtContext;
+import gen.antlr.tile.tileParser.ObjectAccessorContext;
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParser.ReturnStmtContext;
 import gen.antlr.tile.tileParser.SelectionStmtContext;
+import gen.antlr.tile.tileParser.StructDefinitionContext;
 import gen.antlr.tile.tileParser.VariableAssignmentContext;
 import gen.antlr.tile.tileParser.VariableDeclerationContext;
 import gen.antlr.tile.tileParser.VariableDefinitionContext;
 import gen.antlr.tile.tileParser.VariableStmtContext;
-import gen.antlr.tile.tileParser.WhileStmtContext;
+import gen.antlr.tile.tileParser.TasmBlockContext;
 import gen.antlr.tile.tileParser.TypeDefinitionContext;
-import gen.antlr.tile.tileParser.StructDefinitionContext;
-import gen.antlr.tile.tileParser.FieldDefinitionContext;
+import gen.antlr.tile.tileParser.WhileStmtContext;
 import gen.antlr.tile.tileParser.ForInitialContext;
-import gen.antlr.tile.tileParser.TypeUnionContext;
 import gen.antlr.tile.tileParserBaseVisitor;
+import tile.app.Tile;
 import tile.app.Log;
 import tile.ast.base.*;
 import tile.ast.stmt.*;
 import tile.ast.stmt.FunctionDefinition.FuncArg;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
-import tile.ast.types.TypeResolver.TypeInfoArray;
 import tile.ast.types.TypeResolver.TypeInfoRetStmt;
 import tile.ast.types.TypeResolver.TypeInfoVariableDef;
 import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
+
+    public static boolean staticReturnAnalysis(BlockStmt blck) {
+        for (Statement stmt : blck.statements) {
+            if (stmt instanceof ReturnStmt) {
+                return true;
+            } else if (stmt instanceof BlockStmt) {
+                if (staticReturnAnalysis((BlockStmt)stmt)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     @Override
     public Statement visitBlockStmt(BlockStmtContext ctx) {
@@ -99,7 +117,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
                 blockStmt.variableSymbols.put(tasmVarSym, vd);
             }
@@ -125,7 +144,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
 
                 if (init instanceof VariableDefinition) {
@@ -153,44 +173,56 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
                 Program.blockStack.remove(Program.blockStack.size() - 1);
             }
+
+            // static analysis if func returns the correct thing
+            if (parent instanceof FuncDefStmtContext) {
+                if (!(func.getReturn_type().result_type.equals("void"))) {
+                    boolean isReturned = staticReturnAnalysis(blockStmt);
+                    if (!isReturned) {
+                        int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                        int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                        Log.error(line + ":" + col + ": function should return!");
+                    }
+                }
+            }
+
+
             return blockStmt;
         }
         
         
         for (int i = 0; i < ctx.localStatements().localStatement().size(); i++) {
             Statement stmt = visit(ctx.localStatements().localStatement(i));
-            if (stmt instanceof VariableDefinition) {
+            if (stmt instanceof Variable) {
                 variableTasmId = func.getTasmVarIdx();
-                ((VariableDefinition)stmt).setTasmIdx(variableTasmId);
+                ((Variable)stmt).setTasmIdx(variableTasmId);
 
-                String varId = ((VariableDefinition)stmt).getVarId();
+                String varId = ((Variable)stmt).getVarId();
                 int blockId = blockStmt.getBlockId();
                 String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
 
                 if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
                     int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": variable " + "'" + varId + "' is already defined in the same scope!");
                 }
 
-                blockStmt.variableSymbols.put(tasmVarSym, ((VariableDefinition)stmt));
-            } else if (stmt instanceof VariableDecleration) {
-                variableTasmId = func.getTasmVarIdx();
-                ((VariableDecleration)stmt).setTasmIdx(variableTasmId);
-
-                String varId = ((VariableDecleration)stmt).getVarId();
-                int blockId = blockStmt.getBlockId();
-                String tasmVarSym = TasmSymbolGenerator.tasmGenVariableName(blockId, varId);
-
-                if (blockStmt.variableSymbols.containsKey(tasmVarSym)) {
-                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": variable " + "'" + varId + "' is already defined in the same scope!");
-                }
-
-                blockStmt.variableSymbols.put(tasmVarSym, ((VariableDecleration)stmt));
+                blockStmt.variableSymbols.put(tasmVarSym, ((Variable)stmt));
             }
             blockStmt.addStatement(stmt);
         }
-        
+
+        // static analysis if func returns the correct thing
+        if (parent instanceof FuncDefStmtContext) {
+            if (!(func.getReturn_type().result_type.equals("void"))) {
+                boolean isReturned = staticReturnAnalysis(blockStmt);
+                if (!isReturned) {
+                    int line = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getLine();
+                    int col = ((FuncDefStmtContext)parentFunc).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": function should return!");
+                }
+            }
+        }
 
         if (Program.parentStack.isEmpty() || !(Program.parentStack.peek() instanceof ForStmt)) {
             Program.blockStack.remove(Program.blockStack.size() - 1);
@@ -241,7 +273,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         if (!(((ExpressionStmt)condition).getType().equals("bool"))) {
             int line = ctx.KW_FOR().getSymbol().getLine();
-            System.err.println("WARNING:" + line + ": for condition expression type should be a bool type!");
+            int col = ctx.KW_FOR().getSymbol().getCharPositionInLine();
+            Log.warning(line + ":" + col + ": for condition expression type should be a bool type!");
         }
 
         AntlrToExpression exprVisitor = new AntlrToExpression();
@@ -272,38 +305,35 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         return result;
     }
 
-    // @Override
-    // public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
-    //     String name = ctx.IDENTIFIER().getText();
+    @Override
+    public Statement visitTypeDefinition(TypeDefinitionContext ctx) {
+        String typeName = ctx.IDENTIFIER().getText();
+        HashMap<String, TypeDefinition.Field> fields = null;
+        TypeDefinition.Kind kind = null;
+        if (ctx.structDefinition() != null) {
+            fields = new HashMap<>();
+            kind = TypeDefinition.Kind.STRUCT;
+            int offset = 0;
+            for (int i = 0; i < ctx.structDefinition().fieldDefinition().size(); i++) {
+                String id = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getText();
+                String type = ctx.structDefinition().fieldDefinition(i).typeName().getText();
+                int type_size = TypeResolver.resolveFieldTypeSize(type);
+                TypeDefinition.Field field = new TypeDefinition.Field(id, type, type_size, offset);
+                offset += type_size;
+                if (!fields.containsKey(id)) {
+                    fields.put(id, field);
+                } else {
+                    int line = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getSymbol().getLine();
+                    int col = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + " " + id + " field is already defined in " + typeName + "!");
+                }
+            }
+        }
 
-    //     if (ctx.structDefinition() != null) {
-    //         TypeDefinition def = new TypeDefinition(name, TypeDefinition.Kind.STRUCT);
-    //         List<String> fields = new ArrayList<>();
-
-    //         for (var fieldCtx : ctx.structDefinition().fieldDefinition()) {
-    //             String fieldName = fieldCtx.IDENTIFIER().getText();
-    //             String fieldType = fieldCtx.typeName().getText();
-    //             fields.add(new String(fieldName, fieldType));
-    //         }
-
-    //         def.fields = fields;
-    //         TypeResolver.userTypeDefs.put(name, def);
-
-    //     } else if (ctx.typeUnion() != null) {
-    //         TypeDefinition def = new TypeDefinition(name, TypeDefinition.Kind.UNION);
-
-    //         List<String> variants = ctx.typeUnion().IDENTIFIER()
-    //                 .stream()
-    //                 .map(ParseTree::getText)
-    //                 .toList();
-
-    //         def.variants = variants;
-    //         TypeResolver.userTypeDefs.put(name, def);
-    //     }
-
-    //     return new ExpressionStmt(null, false);
-    //     return super.visitTypeDefinition(ctx);
-    // }
+        TypeDefinition td = new TypeDefinition(typeName, kind, fields);
+        TypeResolver.userTypeDefs.put(typeName, td);
+        return td;
+    }
 
     @Override
     public Statement visitFuncDefStmt(FuncDefStmtContext ctx) {
@@ -343,7 +373,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         if (!(expr.getType().equals("bool"))) {
             int line = ctx.KW_IF().getSymbol().getLine();
-            System.err.println("WARNING:" + line + ": if condition expression type should be a bool type!");
+            int col = ctx.KW_IF().getSymbol().getCharPositionInLine();
+            Log.warning(line + ":" + col + ": if condition expression type should be a bool type!");
         }
 
         stmt = visit(ctx.blockStmt(0));
@@ -380,7 +411,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         }
         if (parent == null) {
             int line = ctx.KW_RETURN().getSymbol().getLine();
-            Log.error(line + ": " + "return statement cannot be used outside a function definiton!");
+            int col = ctx.KW_RETURN().getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": return statement cannot be used outside a function definiton!");
             return null;
         }
 
@@ -403,6 +435,19 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     }
 
     @Override
+    public Statement visitTasmBlock(TasmBlockContext ctx) {
+        List<String> lines = new ArrayList<>();
+
+        if (ctx.tasmInstructions() != null) {
+            for (int i = 0; i < ctx.tasmInstructions().tasmLine().size(); i++) {
+                lines.add(ctx.tasmInstructions().tasmLine().get(i).getText());
+            }
+        }
+
+        return new TasmStmt(lines);
+    }
+
+    @Override
     public Statement visitWhileStmt(WhileStmtContext ctx) {
         AntlrToExpression exprVisitor = new AntlrToExpression();
         Expression expr = exprVisitor.visit(ctx.expression());
@@ -410,7 +455,8 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         if (!(expr.getType().equals("bool"))) {
             int line = ctx.KW_WHILE().getSymbol().getLine();
-            Log.warning(line + ": while condition expression type should be a bool type!");
+            int col = ctx.KW_WHILE().getSymbol().getCharPositionInLine();
+            Log.warning(line + ":" + col + ": while condition expression type should be a bool type!");
         }
 
         stmt = visit(ctx.blockStmt());
@@ -423,24 +469,45 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     @Override
     public Statement visitVariableAssignment(VariableAssignmentContext ctx) {
         String varId = "";
+        List<String> fieldIds = new ArrayList<>();
         if (ctx.arrayIndexAccessorSetter() != null) {
             varId = ctx.arrayIndexAccessorSetter().IDENTIFIER().getText();
+        } else if (ctx.objectAccessor() != null) {
+            varId = ctx.objectAccessor().IDENTIFIER(0).getText();
+            ObjectAccessorContext oac = ctx.objectAccessor();
+            if (oac.IDENTIFIER(1) != null) {
+                fieldIds.add(oac.IDENTIFIER(1).getText());
+            }
+            while (oac.objectAccessor() != null) {
+                oac = oac.objectAccessor();
+                fieldIds.add(oac.IDENTIFIER(0).getText());
+            }
+
+            Log.debug(fieldIds.toString());
         } else {
             varId = ctx.IDENTIFIER().getText();
         }
 
         StringBuilder varType = new StringBuilder();
         int tasmIdx = -1;
+        AtomicBoolean isGlobal = new AtomicBoolean(false);
         try {
-            tasmIdx = TasmSymbolGenerator.identifierScopeFind(varId, varType);
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(varId, varType, isGlobal);
+            // TODO: use isGlobal!!!
         } catch (Exception e) {
             int line = -1;
+            int col = -1;
             if (ctx.arrayIndexAccessorSetter() != null) {
                 line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
+                col = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getCharPositionInLine();
+            } else if (ctx.objectAccessor() != null) {
+                line = ctx.objectAccessor().IDENTIFIER(0).getSymbol().getLine();
+                col = ctx.objectAccessor().IDENTIFIER(0).getSymbol().getCharPositionInLine();
             } else {
                 line = ctx.IDENTIFIER().getSymbol().getLine();
+                col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
             }
-            Log.error(line + ": variable " + "'" + varId + "' is not defined before assignment!");
+            Log.error(line + ":" + col + ": variable " + "'" + varId + "' is not defined before assignment!");
         }
 
         String assignmentOperator = ctx.assignmentOperator().getText();
@@ -462,30 +529,54 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
                 Expression expr = exprVisitor.visit(ctx.arrayIndexAccessorSetter().arrayIndexSpecifier(i).expression());
                 if (!TypeResolver.isIntType(expr.getType())) {
                     int line = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getLine();
-                    Log.error(line + ": Array index specifier setter must be 'int' type!");
+                    int col = ctx.arrayIndexAccessorSetter().IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": Array index specifier setter must be 'int' type!");
                 }
                 exprs.add(expr);
             }
             typeInfo = TypeResolver.resolveVariableDefArrayType(varTypeStr, exprType, dim);
+        } else if (ctx.objectAccessor() != null) {
+            typeInfo = TypeResolver.resolveVariableDefUserDefType(varTypeStr, exprType, fieldIds);
         } else {
             typeInfo = TypeResolver.resolveVariableDefType(varTypeStr, exprType);
         }
 
         VariableAssignment va = new VariableAssignment(typeInfo, varId, assignmentOperator, exprs, exprStmt, tasmIdx);
+        if (isGlobal.get()) {
+            va.setAsGlobal();
+        }
 
         return va;
     }
 
     @Override
     public Statement visitVariableDecleration(VariableDeclerationContext ctx) {
-        // TODO Auto-generated method stub
         // int a;
         // Cat b;
 
         String type = ctx.typeName().getText();
         String varId = ctx.IDENTIFIER().getText();
 
+        if (ctx.typeName().primaryTypeName() != null) {
+            if (ctx.typeName().primaryTypeName().IDENTIFIER() != null) {
+                TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+
+                if (td == null) {
+                    int line = ctx.typeName().primaryTypeName().IDENTIFIER().getSymbol().getLine();
+                    int col = ctx.typeName().primaryTypeName().IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": type " + type + " cannot be resolved!");
+                }
+            }
+        }
+
         VariableDecleration v_dec = new VariableDecleration(type, varId);
+
+        // if it is global
+        if (ctx.parent.parent instanceof GlobalStatementContext) {
+            int variableTasmId = Program.getTasmVarIdx();
+            v_dec.setTasmIdx(variableTasmId);
+            v_dec.setAsGlobal();
+        }
 
         return v_dec;
     }
@@ -494,6 +585,19 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
     public Statement visitVariableDefinition(VariableDefinitionContext ctx) {
         String type = ctx.typeName().getText();
         String varId = ctx.IDENTIFIER().getText();
+
+        if (ctx.typeName().primaryTypeName() != null) {
+            if (ctx.typeName().primaryTypeName().IDENTIFIER() != null) {
+                TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+
+                if (td == null) {
+                    int line = ctx.typeName().primaryTypeName().IDENTIFIER().getSymbol().getLine();
+                    int col = ctx.typeName().primaryTypeName().IDENTIFIER().getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": type " + type + " cannot be resolved!");
+                }
+            }
+        }
+
         Statement exprStmt = visit(ctx.expressionStmt());
 
         String exprType = ((ExpressionStmt)exprStmt).getType();
@@ -503,7 +607,43 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
 
         VariableDefinition vd = new VariableDefinition(typeInfo, varId, exprStmt);
 
+        // if it is global
+        if (ctx.parent.parent instanceof GlobalStatementContext) {
+            int variableTasmId = Program.getTasmVarIdx();
+            vd.setTasmIdx(variableTasmId);
+            vd.setAsGlobal();
+        }
+
         return vd;
+    }
+
+    @Override
+    public Statement visitImportStmt(ImportStmtContext ctx) {
+        String rawPath = ctx.importTarget().STRING_LITERAL().getText();
+        Path importPath = Paths.get(rawPath.replace("\"", ""));
+
+        Path baseDir = Program.programPaths.getLast();
+        Path combined = baseDir.resolve(importPath).normalize();
+
+        if (!Files.exists(combined)) {
+            Log.error("Failed to import: file not found: " + rawPath);
+        }
+
+        Program.programPaths.add(combined.getParent());
+        Program importedProgram;
+        try {
+            tileParser parser = Tile.createTileParser(combined.toString());
+            tileParser.ProgramContext importedCtx = parser.program();
+            AntlrToProgram visitor = new AntlrToProgram();
+            importedProgram = visitor.visit(importedCtx);
+
+            importedProgram.setBaseDirectory(combined);
+            importedProgram.markAsImported();
+        } finally {
+            Program.programPaths.removeLast();
+        }
+
+        return new ImportStmt(combined.toString(), importedProgram);
     }
 
     @Override

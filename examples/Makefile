@@ -4,7 +4,7 @@
 
 # Explicitly list subdirs since wildcard */ is failing
 EXAMPLE_DIRS := snake/ string/ forloop/
-TILE_FILES := $(wildcard snake/*.tile string/*.tile forloop/*.tile)
+TILE_FILES := $(wildcard snake/*.tile pong/*.tile forloop/*.tile tic-tac-toe/*.tile)
 TASM_FILES := $(TILE_FILES:.tile=.tasm)
 BIN_FILES := $(TASM_FILES:.tasm=.bin)
 
@@ -14,7 +14,7 @@ $(info TILE_FILES: $(TILE_FILES))
 $(info TASM_FILES: $(TASM_FILES))
 $(info BIN_FILES: $(BIN_FILES))
 $(info WILDCARD DIRS: $(wildcard */))
-$(info WILDCARD TILES: $(wildcard snake/*.tile string/*.tile forloop/*.tile))
+$(info WILDCARD TILES: $(wildcard snake/*.tile pong/*.tile forloop/*.tile tic-tac-toe/*.tile))
 
 all: $(BIN_FILES)
 	@echo "Done building: $(BIN_FILES)"

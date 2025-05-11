@@ -2,8 +2,9 @@ package tile;
 
 import gen.antlr.tile.tileParser.ProgramContext;
 import gen.antlr.tile.tileParserBaseVisitor;
+import tile.app.Log;
 import tile.ast.base.*;
-import tile.ast.stmt.VariableDefinition;
+import tile.ast.stmt.Variable;
 import tile.sym.TasmSymbolGenerator;
 
 public class AntlrToProgram extends tileParserBaseVisitor<Program>{
@@ -16,11 +17,11 @@ public class AntlrToProgram extends tileParserBaseVisitor<Program>{
         AntlrToStatement statementVisitor = new AntlrToStatement();
         for (int i = 0; i < ctx.globalStatements().globalStatement().size(); i++) {
             Statement stmt = statementVisitor.visit(ctx.globalStatements().globalStatement(i));
-            if (stmt instanceof VariableDefinition) {
+            if (stmt instanceof Variable) {
                 
-                String globalTasmVarId = TasmSymbolGenerator.tasmGenGlobalVariableName(((VariableDefinition)stmt).getVarId());
+                String globalTasmVarId = TasmSymbolGenerator.tasmGenGlobalVariableName(((Variable)stmt).getVarId());
 
-                Program.globalVariableSymbols.put(globalTasmVarId, ((VariableDefinition)stmt));
+                Program.globalVariableSymbols.put(globalTasmVarId, ((Variable)stmt));
             }
             program.addStatement(stmt);
         }

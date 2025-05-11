@@ -28,6 +28,8 @@ public class LogicalExpression implements Expression {
 
         if (operator.equals("&&")) {
             generatedCode += "    and\n";
+        } else if (operator.equals("||")) {
+            generatedCode += "    or\n";
         }
 
         return generatedCode;

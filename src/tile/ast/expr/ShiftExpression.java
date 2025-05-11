@@ -26,9 +26,9 @@ public class ShiftExpression implements Expression {
         generatedCode = right.generateTasm(generatedCode);
 
         if (operator.equals("<<")) {
-            generatedCode += "    shl\n";
+            generatedCode += "    lshft\n";
         } else if (operator.equals(">>")) {
-            generatedCode += "    shr\n";
+            generatedCode += "    rshft\n";
         } else {
             System.err.println("Unknown shift operator: " + operator);
         }

@@ -4,13 +4,17 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import org.antlr.v4.runtime.tree.ParseTree;
+
+import tile.err.TileErrorListener;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.Token;
 
 import gen.antlr.tile.tileLexer;
 import gen.antlr.tile.tileParser;
@@ -37,8 +41,26 @@ public class Tile {
         Log.setDebugMode(results.debug);
 
         tileParser parser = createTileParser(results.inputFile);
+
+        // syntax errors
+        TileErrorListener errorListener = new TileErrorListener();
+        parser.removeErrorListeners();
+        parser.addErrorListener(errorListener);
+
+
         ParseTree ast = parser.program();
+
+        // check for syntax errors
+        if (errorListener.hasErrors()) {
+            System.out.println("Parsing failed with the following errors:");
+            for (String error : errorListener.getErrorMessages()) {
+                System.out.println(error);
+            }
+            System.exit(2);
+        }
+
         AntlrToProgram programVisitor = new AntlrToProgram();
+        Program.programPaths.add(getProgramDir(results));
         Program program = programVisitor.visit(ast);
 
         if (Program.getError() == false) {
@@ -64,7 +86,7 @@ public class Tile {
         }
     }
 
-    private static tileParser createTileParser(String filePath) {
+    public static tileParser createTileParser(String filePath) {
         tileParser parser = null;
         
         try {
@@ -81,7 +103,8 @@ public class Tile {
 
             parser = new tileParser(tokens);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.error(filePath + " file cannot found!");
+            System.exit(3);
         }
 
         return parser;
@@ -136,5 +159,11 @@ public class Tile {
         }
         
         return fileName;
+    }
+
+    private static Path getProgramDir(ArgResults results) {
+        Path filePath = Paths.get(System.getProperty("user.dir"), results.inputFile);
+        Path dir = filePath.getParent();
+        return dir != null ? dir : Paths.get(System.getProperty("user.dir"));
     }
 }
