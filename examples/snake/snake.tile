@@ -8,14 +8,22 @@ import "../tileraylib.tile";
 screenWidth: int = 400;
 screenHeight: int = screenWidth;
 
-func run_game(): void {
-    
-    prev_dirs: int[] = int[50];
-    posx: float[] = float[50];
-    posy: float[] = float[50];
-    dirs: int[] = int[50];
+prev_dirs: int[] = int[50];
+posx: float[] = float[50];
+posy: float[] = float[50];
+dirs: int[] = int[50];
+snake_count: int = 1;
 
-    snake_count: int = 1;
+func is_tile_empty(cherry_posx: float, cherry_posy: float): bool {
+    for (i: int = 0; i < snake_count; i++) {
+        if ((int)cherry_posx == (int)posx[i] && (int)cherry_posy == (int)posy[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+func run_game(): void {
     snake_step: int = screenWidth / 10;
     snake_size: int = snake_step;
 
@@ -111,6 +119,11 @@ func run_game(): void {
                 // randomly put the cherry again
                 cherry_posx = GetRandomValue(0, 9) * snake_size;
                 cherry_posy = GetRandomValue(0, 9) * snake_size;
+                // do not allow cherry to be appeared under snake!
+                while (!is_tile_empty(cherry_posx, cherry_posy)) {
+                    cherry_posx = GetRandomValue(0, 9) * snake_size;
+                    cherry_posy = GetRandomValue(0, 9) * snake_size;
+                }
             }
         }
     
@@ -151,7 +164,7 @@ func main(argc: int): void {
     InitWindow(screenWidth, screenHeight, "Snake Game");
     SetTargetFPS(60);   // Set our game to run at 60 frames-per-second
 
-    SetRandomSeed(4642);
+    SetRandomSeed(GetTime() * 100);
 
 	run_game();
 
