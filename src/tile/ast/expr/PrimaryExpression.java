@@ -77,6 +77,14 @@ public class PrimaryExpression implements Expression {
                     }
                 }
             }
+            if (isUnaryNotNull) {
+                if (unaryOp.equals("!")) {
+                    if (type.equals("bool")) {
+                        generatedCode += "    ";
+                        generatedCode += "not" + "; !\n";
+                    }
+                }
+            }
 
             if (isUnaryNotNull) {
                 // TODO: solve the "load"ing the value problem for each iteration unary operator ++ or -- called. It fills stack! (use pop or don't generate the load below under some conditions!)

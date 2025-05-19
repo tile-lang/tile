@@ -468,6 +468,10 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                     if (!(type.equals("int") || type.equals("float"))) {
                         Log.error("'+' and '-' prefixes cannot go before any non-numeric type!");
                     }
+                } else if (unaryOp.equals("!")) {
+                    if (!type.equals("bool")) {
+                        Log.error("'" + unaryOp + "' operator cannot go before this type: " + type);
+                    }
                 }
             }
             else if (ctx.incDecOperator() != null) {
