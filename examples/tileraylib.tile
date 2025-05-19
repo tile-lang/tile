@@ -11,6 +11,7 @@ native func EndDrawing(): cvoid;
 native func ClearBackground(color: cu32): cvoid;
 native func SetTargetFPS(fps: ci32): cvoid;
 native func GetFrameTime(): cf32;
+native func GetTime(): cf64;
 native func DrawRectangle(posX: ci32, posY: ci32, width: ci32, height: ci32, color: cu32): cvoid;
 native func DrawCircle(posX: ci32, posY: ci32, radius: cf32, color: cu32): cvoid;
 native func DrawLine(ci32, ci32, ci32, ci32, cu32): cvoid;

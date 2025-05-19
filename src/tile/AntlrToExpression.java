@@ -18,6 +18,8 @@ import gen.antlr.tile.tileParser.InclusiveOrExpressionContext;
 import gen.antlr.tile.tileParser.LogicalAndExpressionContext;
 import gen.antlr.tile.tileParser.LogicalOrExpressionContext;
 import gen.antlr.tile.tileParser.MultiplicativeExpressionContext;
+import gen.antlr.tile.tileParser.ObjectAccessorContext;
+import gen.antlr.tile.tileParser.ObjectLiteralExpressionContext;
 import gen.antlr.tile.tileParser.PrimaryExpressionContext;
 import gen.antlr.tile.tileParser.RelationalExpressionContext;
 import gen.antlr.tile.tileParser.ShiftExpressionContext;
@@ -40,10 +42,13 @@ import tile.ast.expr.EqualityExpression;
 import tile.ast.expr.FuncCallExpression;
 import tile.ast.expr.LogicalExpression;
 import tile.ast.expr.MultiplicativeExpression;
+import tile.ast.expr.ObjectAccessor;
+import tile.ast.expr.ObjectLiteral;
 import tile.ast.expr.PrimaryExpression;
 import tile.ast.expr.RelationalExpression;
 import tile.ast.expr.ShiftExpression;
 import tile.ast.expr.UnaryExpression;
+import tile.ast.stmt.TypeDefinition;
 import tile.ast.types.TypeResolver;
 import tile.ast.types.TypeResolver.TypeFuncCall;
 import tile.ast.types.TypeResolver.TypeInfoArray;
@@ -463,6 +468,10 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                     if (!(type.equals("int") || type.equals("float"))) {
                         Log.error("'+' and '-' prefixes cannot go before any non-numeric type!");
                     }
+                } else if (unaryOp.equals("!")) {
+                    if (!type.equals("bool")) {
+                        Log.error("'" + unaryOp + "' operator cannot go before this type: " + type);
+                    }
                 }
             }
             else if (ctx.incDecOperator() != null) {
@@ -571,6 +580,110 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
         Log.debug("visitForUpdate result " + result);
 
         return result;
+    }
+
+    @Override
+    public Expression visitObjectLiteralExpression(ObjectLiteralExpressionContext ctx) {
+        String type = "";
+        if (ctx.IDENTIFIER() != null) {
+            // Implemented
+            /*
+                a: Animal = Animal {
+                    .name = "asd",
+                    .age = 10
+                }; 
+            */
+            type = ctx.IDENTIFIER().getText();
+            TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+            if (td == null) {
+                int line = ctx.IDENTIFIER().getSymbol().getLine();
+                int col = ctx.IDENTIFIER().getSymbol().getCharPositionInLine();
+                Log.error(line + ":" + col + ": literal type " + type + " cannot be resolved!");
+            } else {
+                // traverse {.identifier} and typedefinition fields to see if they matched
+                if (ctx.objectLiteralFieldAssignment() != null) {
+                    int[] assignedFields = new int[td.getFields().size()];
+                    for (int i = 0; i < ctx.objectLiteralFieldAssignment().size(); i++) {
+                        String objLitFieldId = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getText();
+
+                        if (td.getFields().get(objLitFieldId) == null) {
+                            int line = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getSymbol().getLine();
+                            int col = ctx.objectLiteralFieldAssignment(i).IDENTIFIER().getSymbol().getCharPositionInLine();
+                            Log.error(line + ":" + col + ": " + type + " doesn't have a field " + objLitFieldId + "!");
+                        }
+                    }
+
+                    ObjectLiteral objLit = new ObjectLiteral(td, type, assignedFields);
+                    return objLit;
+                }
+            }
+
+        } else {
+            // TODO: Not implemented inferring type
+            /*
+                a: Animal = {0}; 
+                a: Animal = {
+                    .name = "asd",
+                    .age = 10
+                }; 
+            */
+            int line = ctx.PUNC_LEFTBRACE().getSymbol().getLine();
+            int col = ctx.PUNC_LEFTBRACE().getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": for custom literal type, type inferring is not implemented yet!");
+        }
+
+
+        
+        return super.visitObjectLiteralExpression(ctx);
+    }
+
+    @Override
+    public Expression visitObjectAccessor(ObjectAccessorContext ctx) {
+        String identifier = ctx.IDENTIFIER(0).getText();
+        StringBuilder varType = new StringBuilder();
+        int tasmIdx = -1;
+        AtomicBoolean isGlobal = new AtomicBoolean(false);
+        try {
+            tasmIdx = TasmSymbolGenerator.identifierScopeFind(identifier, varType, isGlobal);
+            // TODO: use isGlobal!!!
+        } catch (Exception e) {
+            int line = ctx.IDENTIFIER(0).getSymbol().getLine();
+            int col = ctx.IDENTIFIER(0).getSymbol().getCharPositionInLine();
+            Log.error(line + ":" + col + ": variable " + "'" + identifier + "' is not defined before use!");
+        }
+
+        String type = varType.toString();
+        TypeDefinition td = TypeResolver.userTypeDefs.get(type);
+
+
+        if (ctx.objectAccessor() == null) {
+            String fieldId = ctx.IDENTIFIER(1).getText();
+            if (td != null) {
+                td.getFields().get(fieldId);
+                if (td.getFields().get(fieldId) == null) {
+                    int line = ctx.IDENTIFIER(1).getSymbol().getLine();
+                    int col = ctx.IDENTIFIER(1).getSymbol().getCharPositionInLine();
+                    Log.error(line + ":" + col + ": '" + identifier + ": " + type + "'' doesn't have a field " + fieldId + "!");
+                }
+            }
+
+            ObjectAccessor oa = new ObjectAccessor(fieldId, td, tasmIdx, null);
+            if (isGlobal.get() == true) {
+                oa.setAsGlobal();
+            }
+
+            return oa;
+        } else {
+            
+            ObjectAccessor accessor = (ObjectAccessor)visit(ctx.objectAccessor());
+
+            ObjectAccessor oa = new ObjectAccessor(null, td, tasmIdx, accessor);
+            if (isGlobal.get() == true) {
+                oa.setAsGlobal();
+            }
+
+            return oa;
+        }        
     }
 
 }
