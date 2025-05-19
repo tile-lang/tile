@@ -188,6 +188,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
                 return visit(ctx.unaryExpression());
             } else if (ctx.arrayIndexAccessor() != null) {
                 return visit(ctx.arrayIndexAccessor());
+            } else if (ctx.objectAccessor() != null) {
+                return visit(ctx.objectAccessor());
             }
         }
         String cast_type = ctx.typeName().getText();
@@ -201,6 +203,8 @@ public class AntlrToExpression extends tileParserBaseVisitor<Expression> {
             expr = visit(ctx.unaryExpression());
         } else if (ctx.arrayIndexAccessor() != null) {
             expr = visit(ctx.arrayIndexAccessor());
+        } else if (ctx.objectAccessor() != null) {
+            expr = visit(ctx.objectAccessor());
         }
         expr_type = expr.getType();
 
