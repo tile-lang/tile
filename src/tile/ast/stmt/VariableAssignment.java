@@ -76,7 +76,7 @@ public class VariableAssignment implements Statement {
             // FIXME: fix here hset created for arrays
             generatedCode += "    push " + offset + "\n";
             generatedCode += "    push " + type_size + "\n";
-            generatedCode += "    hset\n";
+            generatedCode += "    hsetof\n";
         } else if (typeInfo.info_array != null) {
             if (isGlobal) {
                 generatedCode += "    gload " + tasmIdx + "\n";
