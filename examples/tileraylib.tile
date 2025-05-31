@@ -1,0 +1,21 @@
+/*
+    04.26.2025
+    Muhammed Yasinhan Yaşar
+*/
+
+native func InitWindow(width: ci32, height: ci32, title: cptr): cvoid;
+native func WindowShouldClose(): ci8;
+native func CloseWindow(): cvoid;
+native func BeginDrawing(): cvoid;
+native func EndDrawing(): cvoid;
+native func ClearBackground(color: cu32): cvoid;
+native func SetTargetFPS(fps: ci32): cvoid;
+native func GetFrameTime(): cf32;
+native func GetTime(): cf64;
+native func DrawRectangle(posX: ci32, posY: ci32, width: ci32, height: ci32, color: cu32): cvoid;
+native func DrawCircle(posX: ci32, posY: ci32, radius: cf32, color: cu32): cvoid;
+native func DrawLine(ci32, ci32, ci32, ci32, cu32): cvoid;
+native func IsKeyDown(key: ci16): ci8;
+
+native func SetRandomSeed(seed: cu32): cvoid;
+native func GetRandomValue(min: ci32, max: ci32): ci32;

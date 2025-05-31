@@ -48,6 +48,7 @@ expressionStmt
 expression
     : primaryExpression
     | unaryExpression
+    | objectAccessor
     | arrayIndexAccessor
     | arrayValuedInitializer
     | arraySizedInitializer
@@ -78,9 +79,9 @@ primaryExpression
     | '(' expression ')'
     ;
 
+// TODO: also allow zero initialize like {0}
 objectLiteralExpression
-    :
-    PUNC_LEFTBRACE ( objectLiteralFieldAssignment (PUNC_COMMA objectLiteralFieldAssignment)*)? PUNC_COMMA? PUNC_RIGHTBRACE
+    : IDENTIFIER? PUNC_LEFTBRACE ( objectLiteralFieldAssignment (PUNC_COMMA objectLiteralFieldAssignment)*)? PUNC_COMMA? PUNC_RIGHTBRACE
     ;
 
 objectLiteralFieldAssignment
@@ -89,6 +90,7 @@ objectLiteralFieldAssignment
 
 objectAccessor
     : IDENTIFIER '.' IDENTIFIER
+    | IDENTIFIER '.' objectAccessor
     ;
 
 unaryExpression
@@ -154,6 +156,8 @@ castExpression
     | funcCallExpression
     | '(' typeName ')' arrayIndexAccessor
     | arrayIndexAccessor
+    | '(' typeName ')' objectAccessor
+    | objectAccessor
     ;
 
 multiplicativeExpression
