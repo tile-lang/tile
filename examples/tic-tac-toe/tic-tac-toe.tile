@@ -21,8 +21,12 @@ native func DrawText(text: cptr, posX: ci32, posY: ci32, fontSize: ci32, color: 
 func drawGrid(grid: char[], square_colors: int[], selected: int, current_player: char): void {
     cellSize: int = 80;
     gap: int = 10;
-    offsetX: int = 30;
-    offsetY: int = 30;
+    screenWidth: int = 400;
+    screenHeight: int = 400;
+    gridWidth: int = 3 * cellSize + 2 * gap;
+    gridHeight: int = 3 * cellSize + 2 * gap;
+    offsetX: int = (screenWidth - gridWidth) / 2;
+    offsetY: int = (screenHeight - gridHeight) / 2 - 20;
 
     for (i: int = 0; i < 9; i++) {
         x: int = offsetX + (i % 3) * (cellSize + gap);
@@ -30,7 +34,6 @@ func drawGrid(grid: char[], square_colors: int[], selected: int, current_player:
 
         DrawRectangle(x, y, cellSize, cellSize, square_colors[i]);
 
-        // Draw selection border
         if (i == selected) {
             DrawRectangle(x, y, cellSize, cellSize, 0xCCCC00FF);
         }
@@ -157,15 +160,15 @@ func main(argc: int): void {
         drawGrid(grid, square_colors, selected, current_player);
 
         if (winner == 'X') {
-            DrawText("Winner: ", 100, 370, 20, 0x00FF00FF);
-            DrawText("Green", 220, 370, 20, 0x00FF00FF);
+            DrawText("Winner: ", 120, 370, 20, 0x00FF00FF);
+            DrawText("Green", 230, 370, 20, 0x00FF00FF);
         }
         else if (winner == 'O') {
-            DrawText("Winner: ", 100, 370, 20, 0xFF0000FF);
-            DrawText("Red", 220, 370, 20, 0xFF0000FF);
+            DrawText("Winner: ", 120, 370, 20, 0xFF0000FF);
+            DrawText("Red", 240, 370, 20, 0xFF0000FF);
         }
         else if (winner == 'D') {
-            DrawText("Draw!", 100, 370, 20, 0x00FF00FF);
+            DrawText("Draw!", 170, 370, 20, 0x00FF00FF);
         }
         EndDrawing();
     }
