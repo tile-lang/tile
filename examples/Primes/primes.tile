@@ -38,7 +38,6 @@ func print_number(num: int): void {
     }
 }
 
-
 func sieve(limit: int, primes: int[]): void {
     k: int = 0;
     while (k <= limit) {
