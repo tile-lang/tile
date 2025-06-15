@@ -13,6 +13,7 @@ public class TypeDefinition implements Statement {
 
     public String typeName;
     public Kind kind;
+    public int size;
 
     public static class Field {
         public String id;
@@ -31,10 +32,11 @@ public class TypeDefinition implements Statement {
     private HashMap<String, Field> fields;     // for struct
     private List<String> variants;  // for union
 
-    public TypeDefinition(String typeName, Kind kind, HashMap<String, Field> fields) {
+    public TypeDefinition(String typeName, Kind kind, HashMap<String, Field> fields, int size) {
         this.typeName = typeName;
         this.kind = kind;
         this.fields = fields;
+        this.size = size;
     }
 
     @Override

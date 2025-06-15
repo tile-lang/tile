@@ -91,6 +91,8 @@ objectLiteralFieldAssignment
 objectAccessor
     : IDENTIFIER '.' IDENTIFIER
     | IDENTIFIER '.' objectAccessor
+    | arrayIndexAccessor '.' IDENTIFIER
+    | arrayIndexAccessor '.' objectAccessor
     ;
 
 unaryExpression
@@ -122,7 +124,7 @@ arrayValuedInitializerElements
     ;
 
 arraySizedInitializer
-    : primaryTypeName arraySizeSpecifier+
+    : arraySizeSpecifier+ primaryTypeName
     ;
 
 arraySizeSpecifier
@@ -306,7 +308,7 @@ tasmBlock
     ;
 
 tasmInstructions
-    : (tasmLine)? (PUNC_COMMA tasmLine)*
+    : (tasmLine)? PUNC_COMMA? (PUNC_COMMA tasmLine)* PUNC_COMMA?
     ;
 
 tasmLine
