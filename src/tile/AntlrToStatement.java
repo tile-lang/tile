@@ -310,10 +310,10 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
         String typeName = ctx.IDENTIFIER().getText();
         HashMap<String, TypeDefinition.Field> fields = null;
         TypeDefinition.Kind kind = null;
+        int offset = 0;
         if (ctx.structDefinition() != null) {
             fields = new HashMap<>();
             kind = TypeDefinition.Kind.STRUCT;
-            int offset = 0;
             for (int i = 0; i < ctx.structDefinition().fieldDefinition().size(); i++) {
                 String id = ctx.structDefinition().fieldDefinition(i).IDENTIFIER().getText();
                 String type = ctx.structDefinition().fieldDefinition(i).typeName().getText();
@@ -330,7 +330,7 @@ public class AntlrToStatement extends tileParserBaseVisitor<Statement> {
             }
         }
 
-        TypeDefinition td = new TypeDefinition(typeName, kind, fields);
+        TypeDefinition td = new TypeDefinition(typeName, kind, fields, offset);
         TypeResolver.userTypeDefs.put(typeName, td);
         return td;
     }

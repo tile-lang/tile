@@ -167,7 +167,9 @@ public class TypeResolver {
         }
 
         // composite type
-        // FIXME:
+        if (isUserDefinedType(type)) {
+            return userTypeDefs.get(type).size;
+        }
         return -1;
     }
 
@@ -182,7 +184,9 @@ public class TypeResolver {
         }
 
         // composite type
-        // FIXME:
+        if (isUserDefinedType(type)) {
+            return userTypeDefs.get(type).size;
+        }
         return -1;
     }
 
